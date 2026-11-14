@@ -104,4 +104,4 @@ Measured by `make compare`; full table and discussion in [results/comparison.md]
 ## Report and video
 
 - Report PDF: [report/main.pdf](report/main.pdf) (draft; names still to be filled in)
-- Demo video: TODO: link
+- Demo video: [Google Drive Link](https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing)
