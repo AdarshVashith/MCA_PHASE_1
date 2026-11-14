@@ -1,0 +1,14 @@
+% Two-state controller of cpu_core_vn (shared-memory baseline)
+\begin{tikzpicture}[
+    font=\scriptsize,
+    st/.style={draw, thick, circle, minimum size=1.6cm, align=center, fill=orange!12},
+    tr/.style={-{Latex[length=1.8mm]}, thick},
+    x=1cm, y=1cm]
+\node[st] (fe) at (0,0) {FETCH\_\\EXEC\\[1pt]\tiny bus = PC};
+\node[st] (mem) at (4,0) {MEM\\[1pt]\tiny bus = data\\[-1pt]\tiny address};
+\draw[tr] (-1.6,0) -- node[above]{rst} (fe.west);
+\draw[tr] (fe) edge[loop above, looseness=6] node[above, align=center]
+    {ALU, branch, EBREAK:\\done in 1 cycle, PC updated} (fe);
+\draw[tr] (fe.20) to[bend left=18] node[above, align=center]{LW / SW:\\latch instruction} (mem.160);
+\draw[tr] (mem.200) to[bend left=18] node[below, align=center]{read/write done,\\PC $\leftarrow$ PC+4} (fe.340);
+\end{tikzpicture}

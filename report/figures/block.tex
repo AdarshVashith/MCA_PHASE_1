@@ -1,0 +1,46 @@
+% Block diagram: Harvard system (left) vs shared-memory baseline (right)
+\begin{tikzpicture}[
+    font=\scriptsize,
+    blk/.style={draw, thick, rounded corners=2pt, align=center, minimum height=0.8cm},
+    mem/.style={blk, fill=blue!8},
+    cpu/.style={blk, fill=orange!12},
+    misc/.style={blk, fill=gray!10},
+    bus/.style={-{Latex[length=1.6mm]}, thick},
+    x=1cm, y=1cm]
+
+% ---------------- (a) Harvard ----------------
+\node[font=\footnotesize\bfseries] at (2.6,3.2) {(a) Harvard: \texttt{harvard\_top}};
+\node[cpu, minimum width=1.6cm, minimum height=3.4cm] (core) at (0,0.9) {cpu\_core\\[2pt]single\\cycle};
+
+\node[mem, minimum width=2.2cm] (imem) at (4.1,2.2) {instr\_mem\\256 words (ROM)};
+\node[misc, minimum width=2.2cm] (dec) at (4.1,0.9) {addr\_decoder\\+ rw\_ctrl};
+\node[mem, minimum width=2.2cm] (dmem) at (4.1,-0.45) {data\_mem\\256 words (RAM)};
+\node[misc, minimum width=1.0cm, minimum height=0.6cm] (out) at (6.35,0.9) {out\_port};
+
+\draw[bus] (0.8,2.4) -- node[above]{i\_addr} (2.85,2.4);
+\draw[bus] (2.85,2.0) -- node[below]{i\_rdata} (0.8,2.0);
+\draw[bus] (0.8,1.1) -- node[above]{d\_addr} (2.85,1.1);
+\draw[bus] (2.85,0.7) -- node[below]{d\_rdata} (0.8,0.7);
+\draw[bus] (dec.south) -- node[right]{ram\_we} (dmem.north);
+\draw[bus] (dec.east) -- (out.west);
+\draw[densely dashed, gray] (2.9,1.55) -- (5.3,1.55);
+\node[gray, font=\tiny, anchor=west] at (5.35,1.55) {independent ports};
+
+\node[misc, minimum width=4.6cm, minimum height=0.5cm] (perf) at (2.5,-1.65) {perf\_counters};
+\draw[bus] (core.south) -- (core.south |- perf.north);
+
+% ---------------- (b) Shared memory ----------------
+\begin{scope}[xshift=9.6cm]
+\node[font=\footnotesize\bfseries] at (2.2,3.2) {(b) Shared memory: \texttt{vn\_top}};
+\node[cpu, minimum width=1.8cm, minimum height=3.4cm] (vcore) at (0,0.9) {cpu\_core\_vn\\[2pt]FSM:\\FETCH\_EXEC\\MEM};
+\node[misc, minimum width=2.2cm] (vdec) at (3.9,1.9) {addr\_decoder\\(+0x400 for data)};
+\node[mem, minimum width=2.2cm, minimum height=1.1cm] (sm) at (3.9,0.0) {shared\_mem\\code: words 0--255\\data: words 256--511};
+
+\draw[bus] (0.9,1.9) -- node[above]{m\_addr} (vdec.west);
+\draw[bus] (vdec.south) -- node[right]{one port} (sm.north);
+\draw[bus] (sm.west) -- node[below]{m\_rdata} (0.9,0.0);
+
+\node[misc, minimum width=4.4cm, minimum height=0.5cm] (vperf) at (2.0,-1.65) {perf\_counters};
+\draw[bus] (vcore.south) -- (vcore.south |- vperf.north);
+\end{scope}
+\end{tikzpicture}

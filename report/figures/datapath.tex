@@ -1,0 +1,41 @@
+% Single-cycle datapath of cpu_core (Harvard). Highlighted (red): the LW path.
+\begin{tikzpicture}[
+    font=\footnotesize,
+    blk/.style={draw, thick, rounded corners=2pt, align=center, minimum height=0.75cm, fill=white},
+    mem/.style={blk, fill=blue!8},
+    bus/.style={-{Latex[length=1.5mm]}, thick},
+    lw/.style={bus, red!70!black, line width=1.1pt},
+    x=1cm, y=1cm]
+
+\node[blk, minimum width=0.8cm] (pc) at (0,0) {PC};
+\node[mem, minimum width=1.4cm, minimum height=1.4cm] (imem) at (2.5,0) {instr\\mem};
+\node[blk, minimum width=1.4cm, minimum height=1.6cm] (rf) at (5.0,0) {regfile};
+\node[draw, thick, trapezium, trapezium left angle=65, trapezium right angle=65,
+      shape border rotate=270, minimum width=1.3cm, minimum height=0.7cm, fill=white] (alu) at (7.4,0) {ALU};
+\node[mem, minimum width=1.4cm, minimum height=1.4cm] (dmem) at (9.9,0) {data\\mem};
+\node[blk, minimum width=0.5cm, minimum height=1.1cm] (mux) at (11.9,0) {M\\U\\X};
+\node[blk, minimum width=1.3cm] (ctrl) at (7.4,2.0) {control};
+\node[blk, minimum width=1.3cm] (imm) at (5.0,-2.0) {imm\_gen};
+\node[blk, minimum width=1.3cm] (nextpc) at (0,-2.0) {PC+4 or\\PC+imm};
+
+% fetch
+\draw[lw] (pc.east) -- node[above]{i\_addr} (imem.west);
+\draw[lw] (imem.east) -- node[above]{instr} (rf.west);
+\draw[bus] (imem.north) |- (ctrl.west);
+\draw[bus] (imem.south) |- (imm.west);
+% execute
+\draw[lw] ([yshift=3mm]rf.east) -- node[above]{rs1} ([yshift=3mm]rf.east -| alu.west);
+\draw[lw] (imm.east) -| node[pos=0.25, below]{imm} (alu.south);
+\draw[bus] (ctrl.south) -- node[right]{alu\_op} (alu.north);
+\draw[bus] (ctrl.east) -| node[pos=0.7, right, align=left]{mem\_re\\mem\_we} (dmem.north);
+% memory and write back
+\draw[lw] (alu.east) -- node[above]{d\_addr} (dmem.west);
+\draw[lw] (dmem.east) -- node[above]{rdata} (mux.west);
+\draw[lw] (mux.north) |- (11.9,3.0) -| node[pos=0.25, above]{write back to rd} (5.0,0.8);
+% next PC
+\draw[bus] (pc.south) -- (nextpc.north);
+\draw[bus] (nextpc.west) -- ++(-0.5,0) |- (pc.west);
+
+\node[red!70!black, font=\footnotesize\itshape, align=left, anchor=west] at (8.3,-2.0)
+    {LW: instruction fetch and data read\\in the same clock cycle};
+\end{tikzpicture}

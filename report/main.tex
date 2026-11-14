@@ -1,0 +1,316 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes.geometric}
+
+\begin{document}
+
+\title{Instruction and Data Memory Hierarchy:\\
+A Harvard Memory Organisation for a RISC-V Subset Processor}
+
+% TODO: replace with real names, roll numbers and affiliation
+\author{\IEEEauthorblockN{Member 1, Member 2, Member 3, Member 4, Member 5}
+\IEEEauthorblockA{Modern Computer Architecture, Project 9\\
+Department, Institution}}
+
+\maketitle
+
+% =============================================================================
+\begin{abstract}
+In a stored-program computer, instructions and data must both be read from
+memory. When they share a single memory port, as in the classic von Neumann
+organisation, an instruction fetch and a load or store cannot happen in the
+same clock cycle, so every memory instruction costs extra time. A Harvard
+organisation removes this conflict by giving instructions and data separate
+memories and separate paths. This project implements a simplified Harvard
+memory subsystem in synthesizable Verilog: a read-only instruction memory, a
+data RAM, an address decoder with a memory-mapped output register and fault
+detection, and read/write control logic. A single-cycle processor for a
+ten-instruction subset of RV32I drives the memories, and a second processor
+with one shared memory port serves as the baseline. Both systems run the same
+machine-code programs and are checked against each other by a self-checking
+testbench. In simulation, the Harvard design completes every instruction in
+one cycle (CPI~=~1.00), while the shared-memory baseline reaches a CPI of
+1.02 to 1.37 depending on the fraction of loads and stores, confirming that
+baseline cycles equal Harvard cycles plus the number of data accesses.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Harvard architecture, von Neumann architecture, memory hierarchy, RISC-V, Verilog, CPI
+\end{IEEEkeywords}
+
+% =============================================================================
+\section{Introduction}
+
+The stored-program concept, described in von Neumann's report on the
+EDVAC~\cite{vonneumann_edvac}, keeps the program in the same kind of memory
+as the data it operates on. This made computers general purpose, but it also
+means that the processor must use memory for two different purposes: to fetch
+its next instruction and to read or write data. If both go through the same
+memory port, they compete for it. Backus called the single channel between
+processor and memory the ``von Neumann bottleneck''~\cite{backus1978}, and the
+growing gap between processor and memory speed later became known as the
+memory wall~\cite{wulf1995}. Competition for one memory port is the simplest
+form of this bottleneck~\cite{hennessy_quant}.
+
+The Harvard organisation separates the two: instructions come from an
+instruction memory and data from a data memory, each with its own address and
+data paths. A fetch and a data access can then be performed in the same
+cycle. Modern processors use a modified form of this idea, with split level-1
+instruction and data caches in front of a unified main
+memory~\cite{patterson_riscv,hennessy_quant}.
+
+This project builds both organisations in Verilog around the same small
+processor and measures the difference directly. The contributions are:
+(i) a Harvard memory subsystem with independent instruction and data ports,
+address decoding and read/write control;
+(ii) a single-cycle RV32I-subset processor that uses both ports in the same
+cycle;
+(iii) a shared-memory baseline with one port and a two-state controller; and
+(iv) a self-checking verification flow that runs identical programs on both
+designs and reports cycles, CPI and the number of cycles in which a fetch and
+a data access occur simultaneously.
+
+% =============================================================================
+\section{Literature Review}
+
+\subsection{Von Neumann and Harvard organisations}
+In the von Neumann organisation, a single memory holds both instructions and
+data and is reached through one address bus and one data
+bus~\cite{vonneumann_edvac}. Its strength is flexibility: memory can be
+divided between code and data in any proportion, and programs can be treated
+as data. Its weakness is bandwidth: at most one memory transfer can occur per
+memory cycle, so instruction fetch and data transfer are serialised, which is
+exactly the bottleneck described by Backus~\cite{backus1978}. The
+Harvard organisation, named after the Harvard Mark~I, uses physically
+separate instruction and data memories. It doubles the available memory
+bandwidth at the cost of a fixed partition between program and data storage
+and extra hardware for a second set of buses~\cite{hennessy_quant}.
+
+\subsection{Modified Harvard in practice}
+Pure Harvard machines are rare in general-purpose computing, but the idea is
+widespread. Many microcontrollers and digital signal processors keep program
+code in on-chip flash and data in a separate SRAM, each with its own bus, so
+that an instruction can be fetched while an operand is being read. In
+general-purpose processors, the split appears in the cache hierarchy: the
+level-1 cache is divided into an instruction cache and a data cache that can
+be accessed in parallel by the pipeline, while lower levels and main memory
+remain unified~\cite{patterson_riscv,hennessy_quant}. Smith's survey of cache
+memories already discusses this choice between split instruction/data caches
+and a unified cache, noting that a split design lets an instruction fetch and
+a data access proceed in parallel~\cite{smith1982}. This ``modified
+Harvard'' arrangement gives the bandwidth of separate paths near the core and
+the flexibility of a single address space further away. As the gap between
+processor and memory speed grows~\cite{wulf1995}, providing enough memory
+bandwidth to the core matters more, not less.
+
+\subsection{Single-cycle and multi-cycle processors}
+Textbook designs make the effect of memory organisation explicit. A
+single-cycle processor that executes a load in one cycle must read an
+instruction and a data word in the same cycle, and therefore needs separate
+instruction and data memories~\cite{patterson_riscv,harris_riscv}. A
+multi-cycle processor can share one memory between instructions and data by
+spending different cycles on fetch and on data access, which is the approach
+taken by our baseline.
+
+\subsection{RISC-V as a teaching ISA}
+RISC-V is an open instruction set with a small base integer
+ISA~\cite{riscv_isa}. Its regular encodings (fixed 32-bit instructions with
+register fields in fixed positions) keep the decoder small, and it is the ISA
+used by current editions of standard textbooks~\cite{patterson_riscv,harris_riscv}.
+This makes a subset of RV32I a natural choice for an educational processor.
+
+% OPTIONAL (Member 5): add 1--2 verified papers on FPGA/student RISC-V
+% implementations. Search IEEE Xplore for "RISC-V soft core FPGA" and only
+% cite papers you have opened and read.
+
+% =============================================================================
+\section{Proposed Solution}
+
+\subsection{Architecture overview}
+Fig.~\ref{fig:block} shows the two systems. Both use the same instruction
+subset (ADD, SUB, AND, OR, ADDI, LW, SW, BEQ, BNE and EBREAK, encoded as in
+RV32I), the same data address map and the same performance counters, so that
+the only difference between them is the memory organisation.
+
+\begin{figure*}[t]
+\centering
+\input{figures/block.tex}
+\caption{(a) Harvard system: the instruction port and the data port reach separate memories, so a fetch and a load/store happen in the same cycle. (b) Shared-memory baseline: one port carries both fetches and data accesses.}
+\label{fig:block}
+\end{figure*}
+
+\subsection{Memory map}
+The instruction memory holds 256 words (byte addresses \texttt{0x000}--\texttt{0x3FF})
+and is loaded from a hex file. The data address space is shown in
+Table~\ref{tab:map}. In the baseline, one 512-word memory holds code in words
+0--255 and data in words 256--511; the top level adds \texttt{0x400} to
+data RAM addresses, so the same program and data images run unmodified on both
+designs.
+
+\begin{table}[t]
+\caption{Data address map (both designs)}
+\label{tab:map}
+\centering
+\begin{tabular}{ll}
+\toprule
+Byte address & Region \\
+\midrule
+\texttt{0x000}--\texttt{0x3FF} & Data RAM, 256 words \\
+\texttt{0x400} & \texttt{out\_port} register (write-only, reads 0) \\
+other & invalid: write ignored, read 0, \texttt{d\_fault}=1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Harvard memory subsystem}
+The \texttt{harvard\_mem} module contains four blocks. The instruction memory
+is a read-only array with combinational read. The data memory is a RAM with
+synchronous write and combinational read. The address decoder compares the
+data address against the map and asserts exactly one of \texttt{sel\_ram},
+\texttt{sel\_io} or \texttt{addr\_fault}. The read/write controller turns the
+processor's write and read requests into a RAM write enable or an
+\texttt{out\_port} write enable and selects the read data, returning zero for
+the output register and for invalid addresses. The instruction port and the
+data port share no address bus, data bus or array, so a fetch and a data
+access complete in the same cycle.
+
+% TODO (Member 1): add the 150-word module description if it differs.
+
+\subsection{Processor}
+The processor is single-cycle: in one clock period it fetches the instruction
+at the program counter, decodes it, reads two registers, computes a result,
+address or branch comparison in the ALU, performs the data access for LW or
+SW, and writes the result back. Branches use the ALU's subtraction and zero
+flag. EBREAK stops the program counter and raises a \texttt{halt} signal. The
+processor contains no memory; it only drives the instruction and data ports.
+Fig.~\ref{fig:datapath} highlights the path of a load: the instruction is
+fetched, the address is computed and the data word is read and written back,
+all within one clock period.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{\input{figures/datapath.tex}}
+\caption{Single-cycle datapath of \texttt{cpu\_core}. The highlighted path is an LW, which uses the instruction memory and the data memory in the same cycle.}
+\label{fig:datapath}
+\end{figure}
+
+\subsection{Shared-memory baseline}
+The baseline processor reuses the register file, ALU, immediate generator and
+control decoder, but has a single memory bus driven by a two-state controller.
+In the \textsc{FetchExec} state the bus carries the program counter;
+arithmetic, branch and EBREAK instructions complete in this state. A load or
+store cannot use the bus a second time, so the instruction is latched and the
+controller moves to the \textsc{Mem} state, where the bus carries the data
+address and the access is performed. Loads and stores therefore take two
+cycles and all other instructions one (Fig.~\ref{fig:fsm}).
+
+\begin{figure}[t]
+\centering
+\input{figures/fsm.tex}
+\caption{Two-state controller of the shared-memory baseline.}
+\label{fig:fsm}
+\end{figure}
+
+\subsection{Verification}
+A small Python assembler converts the test programs into hex images; its
+self-test compares 13 encodings against values worked out by hand. Unit
+testbenches check the address decoder at the edges of every region, the
+memories, and \texttt{harvard\_mem}, including a cycle in which a fetch and
+a data write occur together. System testbenches run each program until halt
+and check registers, data memory, \texttt{out\_port} and the counters.
+A comparison testbench runs both designs on the same program and checks that
+all 32 registers and 256 data words are identical, that Harvard cycles equal
+Harvard instructions, and that baseline cycles equal Harvard cycles plus the
+number of data accesses. All testbenches are self-checking. The design is
+written in Verilog-2001~\cite{ieee1364} and simulated with Icarus Verilog.
+
+Fig.~\ref{fig:wave} is generated directly from the simulation trace of the
+\texttt{memcopy} program. In cycles 4 and 5 the Harvard design fetches an
+instruction and performs a load, then a store, in the same cycle. The
+baseline needs cycles 4--7 for the same two instructions, because each one
+uses the single port twice: first for the fetch, then (in the MEM state, shaded)
+for the data access.
+
+\begin{figure*}[t]
+\centering
+\input{figures/wave.tex}
+\caption{Waveform from the \texttt{memcopy} simulation, one column per clock cycle (sampled mid-cycle, addresses in hex). Harvard: the data address (green) is active in the same cycle as the instruction address. Shared memory: data accesses (orange) take a separate cycle on the same address bus.}
+\label{fig:wave}
+\end{figure*}
+
+\subsection{Results}
+Table~\ref{tab:results} lists the simulation results for four programs with
+different load/store fractions. All testbenches passed. The Harvard design
+achieves a CPI of exactly 1.00 on every program, and every one of its data
+accesses overlaps an instruction fetch. On the baseline, each data access adds
+one cycle, giving CPI~$=1+f$, where $f$ is the fraction of loads and stores.
+The benefit of the Harvard organisation therefore grows with the memory
+intensity of the program, from 1.02$\times$ for a register-only loop to
+1.37$\times$ for the program with the most loads and stores.
+
+\begin{table}[t]
+\caption{Simulation results (Icarus Verilog)}
+\label{tab:results}
+\centering
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Program & Instr & LS\% & \multicolumn{2}{c}{Harvard} & \multicolumn{2}{c}{Baseline} & Simul. \\
+ & & & Cyc & CPI & Cyc & CPI & cycles \\
+\midrule
+basic      & 19 & 36.8 & 19 & 1.00 & 26 & 1.37 &  7 \\
+array\_sum & 38 & 26.3 & 38 & 1.00 & 48 & 1.26 & 10 \\
+memcopy    & 54 & 31.5 & 54 & 1.00 & 71 & 1.31 & 17 \\
+count\_loop& 64 &  1.6 & 64 & 1.00 & 65 & 1.02 &  1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These are cycle counts only. A complete comparison also needs the cost side:
+the Harvard design uses two memories and two sets of buses, and its clock
+period may differ from the baseline's. % TODO: synthesis LUT/FF/Fmax if run.
+
+% =============================================================================
+\section{Individual Contributions}
+
+% TODO: fill this table from what each member actually did and committed.
+\begin{table}[h]
+\caption{Individual contributions}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.13\columnwidth}>{\raggedright\arraybackslash}p{0.27\columnwidth}>{\raggedright\arraybackslash}p{0.48\columnwidth}}
+\toprule
+Member & Role & Modules / artefacts \\
+\midrule
+Name 1 & Harvard memory core & instr\_mem, data\_mem, addr\_decoder, rw\_ctrl, harvard\_mem \\
+Name 2 & Processor, integration & regfile, alu, imm\_gen, control, pc\_reg, cpu\_core, harvard\_top \\
+Name 3 & Baseline, metrics & perf\_counters, shared\_mem, cpu\_core\_vn, vn\_top, results \\
+Name 4 & Verification & assembler, programs, testbenches, Makefile \\
+Name 5 & Report, video, repo & report, video, README \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =============================================================================
+\section{Conclusion and Phase II Plan}
+We implemented a Harvard memory organisation and a shared-memory baseline
+around the same RV32I-subset processor and showed in simulation that separate
+instruction and data paths remove the extra cycle that every load and store
+costs on a single port. Phase~II will
+% TODO: agree on Phase II scope, e.g.
+(i) add a small instruction cache and data cache in front of a unified
+memory (a modified Harvard design), (ii) add memory latency to study
+stalls, (iii) synthesize both designs on an FPGA to compare area and
+maximum frequency, and (iv) extend the instruction subset.
+
+% =============================================================================
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
