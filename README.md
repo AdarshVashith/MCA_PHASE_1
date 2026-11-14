@@ -14,10 +14,10 @@ and data share one memory port, so each load or store costs an extra cycle
 | Member | Name / GitHub | Role | Owns |
 |---|---|---|---|
 | Member 1 | `@kanishksharma04` | Harvard memory core | `rtl/mem/` |
-| Member 2 | `@hrishu802` | Processor and top-level integration | `rtl/core/`, `rtl/harvard_top.v` |
+| Member 2 | Adarsh Vashistha (`@AdarshVashith`) | Processor and top-level integration | `rtl/core/`, `rtl/harvard_top.v` |
 | Member 3 | `@deepanshu-sharma425` | Shared-memory baseline and metrics | `rtl/common/`, `rtl/baseline/`, `results/comparison.md` |
 | Member 4 | `@emphor11` | Verification and programs | `tb/`, `programs/`, `tools/`, `sim/` |
-| Member 5 | Adarsh Vashistha (`@AdarshVashith`) | Report, video, repository lead | `report/`, `video/`, `docs/`, `README.md` |
+| Member 5 | `@hrishu802` | Report, video, repository lead | `report/`, `video/`, `docs/`, `README.md` |
 
 ## Block diagram
 
