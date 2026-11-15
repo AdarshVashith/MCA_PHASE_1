@@ -1,22 +1,41 @@
 \documentclass[conference]{IEEEtran}
-\usepackage{cite}
+% Times for text and maths, as IEEE requires. T1 encoding makes IEEEtran's
+% Times (ptm) work under pdfLaTeX, and also under XeTeX/Tectonic, which would
+% otherwise fall back to Latin Modern ("Font shape TU/ptm undefined").
+\usepackage[T1]{fontenc}
 \usepackage{amsmath}
+\usepackage{newtxtext,newtxmath}
+\usepackage{cite}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{tabularx}
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, shapes.geometric}
+
+% ---------------------------------------------------------------------------
+% Team details: set these once; they are used in the author block and in the
+% Individual Contributions section.
+% ---------------------------------------------------------------------------
+% Names confirmed by the team on 15 Nov 2026.
+\newcommand{\MemA}{Kanishk}     % Member 1, GitHub kanishksharma04
+\newcommand{\MemB}{Adarsh}    % Member 2, GitHub AdarshVashith
+\newcommand{\MemC}{Deepanshu}     % Member 3, GitHub deepanshu-sharma425
+\newcommand{\MemD}{Daksh}     % Member 4, GitHub emphor11
+\newcommand{\MemE}{Ram}     % Member 5, GitHub Adrenox20
+\newcommand{\Dept}{Department of Computer Science and Artificial Intelligence}
+\newcommand{\Inst}{Newton School of Technology, Rishihood University, Sonipat, Haryana}
 
 \begin{document}
 
 \title{Instruction and Data Memory Hierarchy:\\
 A Harvard Memory Organisation for a RISC-V Subset Processor}
 
-% TODO: replace with real names, roll numbers and affiliation
-\author{\IEEEauthorblockN{Member 1, Member 2, Member 3, Member 4, Member 5}
+\author{\IEEEauthorblockN{\MemA, \MemB, \MemC, \MemD, \MemE}
 \IEEEauthorblockA{Modern Computer Architecture, Project 9\\
-Department, Institution}}
+\Dept\\
+\Inst}}
 
 \maketitle
 
@@ -124,10 +143,22 @@ ISA~\cite{riscv_isa}. Its regular encodings (fixed 32-bit instructions with
 register fields in fixed positions) keep the decoder small, and it is the ISA
 used by current editions of standard textbooks~\cite{patterson_riscv,harris_riscv}.
 This makes a subset of RV32I a natural choice for an educational processor.
+Asanovi\'{c} and Patterson argue that an instruction set should be an open
+standard, as networking protocols are, and give RISC-V's free licence and
+simple base ISA as reasons for adopting it in both research and
+industry~\cite{asanovic2014free}.
 
-% OPTIONAL (Member 5): add 1--2 verified papers on FPGA/student RISC-V
-% implementations. Search IEEE Xplore for "RISC-V soft core FPGA" and only
-% cite papers you have opened and read.
+\subsection{RISC-V soft processors on FPGAs}
+Because the ISA is open, many RISC-V cores have been written in HDL and
+implemented on FPGAs. Miyazaki \emph{et al.} describe RVCoreP, an RV32I soft
+processor with a five-stage pipeline written in Verilog and evaluated on a
+Xilinx Artix-7 board; they optimise the instruction fetch unit, the ALU and
+the data memory to raise the clock frequency, and report IPC, operating
+frequency and resource use against the open-source VexRiscv
+core~\cite{miyazaki2020rvcorep}. That work targets performance. Ours is
+deliberately simpler: a single-cycle core without a pipeline, so that the
+only variable in the comparison is the memory organisation and its effect
+can be read directly from the cycle counts.
 
 % =============================================================================
 \section{Proposed Solution}
@@ -179,8 +210,6 @@ processor's write and read requests into a RAM write enable or an
 the output register and for invalid addresses. The instruction port and the
 data port share no address bus, data bus or array, so a fetch and a data
 access complete in the same cycle.
-
-% TODO (Member 1): add the 150-word module description if it differs.
 
 \subsection{Processor}
 The processor is single-cycle: in one clock period it fetches the instruction
@@ -272,42 +301,103 @@ count\_loop& 64 &  1.6 & 64 & 1.00 & 65 & 1.02 &  1 \\
 \end{tabular}
 \end{table}
 
-These are cycle counts only. A complete comparison also needs the cost side:
-the Harvard design uses two memories and two sets of buses, and its clock
-period may differ from the baseline's. % TODO: synthesis LUT/FF/Fmax if run.
+Cycle counts are only half of the comparison; the other half is cost.
+Both top levels were synthesized with Yosys for a Xilinx 7-series FPGA
+(Table~\ref{tab:synth}). To keep the comparison fair, the Harvard
+instruction ROM was synthesized separately with pseudo-random contents:
+synthesized together with a program, the tool would hard-wire that program
+into the core and remove logic for unused instructions, which a writable
+shared memory does not allow. Even with the extra ROM, the Harvard system
+uses about 34\% fewer LUTs and 33 fewer flip-flops. The baseline pays for a
+512-word memory, a latched instruction register, the two-state controller and
+the address multiplexing in front of its single port; the 33 extra
+flip-flops are exactly the instruction register and the state bit. These are
+synthesis estimates, not post-implementation figures, and the maximum clock
+frequency has not yet been measured (Section~\ref{sec:concl}).
 
-% =============================================================================
-\section{Individual Contributions}
-
-% TODO: fill this table from what each member actually did and committed.
-\begin{table}[h]
-\caption{Individual contributions}
+\begin{table}[t]
+\caption{Yosys synthesis, Xilinx 7-series (memcopy images)}
+\label{tab:synth}
 \centering
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.13\columnwidth}>{\raggedright\arraybackslash}p{0.27\columnwidth}>{\raggedright\arraybackslash}p{0.48\columnwidth}}
+\begin{tabular}{lrrrr}
 \toprule
-Member & Role & Modules / artefacts \\
+Design & Logic & LUT-RAM & Total & Flip- \\
+ & LUTs & LUTs & LUTs & flops \\
 \midrule
-Name 1 & Harvard memory core & instr\_mem, data\_mem, addr\_decoder, rw\_ctrl, harvard\_mem \\
-Name 2 & Processor, integration & regfile, alu, imm\_gen, control, pc\_reg, cpu\_core, harvard\_top \\
-Name 3 & Baseline, metrics & perf\_counters, shared\_mem, cpu\_core\_vn, vn\_top, results \\
-Name 4 & Verification & assembler, programs, testbenches, Makefile \\
-Name 5 & Report, video, repo & report, video, README \\
+Harvard (core, data side) & 409 & 176 & 585 & 194 \\
+Harvard instruction ROM   & 128 &   0 & 128 &   0 \\
+\textbf{Harvard total}    & \textbf{537} & \textbf{176} & \textbf{713} & \textbf{194} \\
+\textbf{Shared memory}    & \textbf{776} & \textbf{304} & \textbf{1080} & \textbf{227} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 % =============================================================================
+\section{Individual Contributions}
+
+Table~\ref{tab:contrib} summarises who built what; every entry corresponds
+to commits by that member in the project repository.
+
+\begin{table}[t]
+\caption{Individual contributions}
+\label{tab:contrib}
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.22\columnwidth}>{\raggedright\arraybackslash}p{0.22\columnwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Member & Role & Modules / artefacts \\
+\midrule
+\MemA & Harvard memory & instr\_mem, data\_mem, addr\_decoder, rw\_ctrl, harvard\_mem \\
+\MemB & Processor, integration & regfile, alu, imm\_gen, control, pc\_reg, cpu\_core, harvard\_top; repository set-up \\
+\MemC & Baseline, metrics & perf\_counters, shared\_mem, cpu\_core\_vn, vn\_top, comparison table, FPGA synthesis (Yosys) \\
+\MemD & Verification & assembler, programs, testbenches, Makefile, waveform figure \\
+\MemE & Report, video & report, figures, video script and video \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{\MemA} designed the Harvard memory subsystem: the read-only
+instruction memory, the data RAM, the address decoder with the
+\texttt{out\_port} and fault regions, the read/write controller, and the
+\texttt{harvard\_mem} wrapper that keeps the two ports independent.
+
+\textbf{\MemB} built the single-cycle processor (register file, ALU,
+immediate generator, control decoder, program counter and datapath) and the
+\texttt{harvard\_top} integration, and set up the repository and its
+interface specification.
+
+\textbf{\MemC} wrote the performance counters, the 512-word shared memory,
+the two-state baseline processor and \texttt{vn\_top}, and recorded the
+comparison table and simulation logs.
+
+\textbf{\MemD} wrote the two-pass assembler, the four benchmark programs,
+the unit, system and comparison testbenches, the simulation Makefile and the
+script that turns the simulation trace into Fig.~\ref{fig:wave}.
+
+\textbf{\MemE} wrote this report and its TikZ figures, wrote the video
+script, and edited the prototype video.
+
+% =============================================================================
 \section{Conclusion and Phase II Plan}
+\label{sec:concl}
 We implemented a Harvard memory organisation and a shared-memory baseline
 around the same RV32I-subset processor and showed in simulation that separate
 instruction and data paths remove the extra cycle that every load and store
-costs on a single port. Phase~II will
-% TODO: agree on Phase II scope, e.g.
+costs on a single port. In Phase~II we plan to
 (i) add a small instruction cache and data cache in front of a unified
 memory (a modified Harvard design), (ii) add memory latency to study
-stalls, (iii) synthesize both designs on an FPGA to compare area and
-maximum frequency, and (iv) extend the instruction subset.
+stalls, (iii) implement both designs on an FPGA board to measure their
+maximum clock frequency and confirm the area figures, and (iv) extend the instruction subset.
+
+% =============================================================================
+\section*{Acknowledgment}
+The team used AI-assisted coding tools in their editors while writing code,
+testbenches and documentation. Every member reviewed, simulated and is able to
+explain the work submitted under their name; all results in this report are
+taken from the simulation logs in the repository.
+% Check the course policy on AI use and adjust this wording if required.
 
 % =============================================================================
 \bibliographystyle{IEEEtran}
