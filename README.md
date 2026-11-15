@@ -13,11 +13,11 @@ and data share one memory port, so each load or store costs an extra cycle
 
 | Member | Name / GitHub | Role | Owns |
 |---|---|---|---|
-| Member 1 | `@kanishksharma04` | Harvard memory core | `rtl/mem/` |
-| Member 2 | Adarsh Vashistha (`@AdarshVashith`) | Processor and top-level integration | `rtl/core/`, `rtl/harvard_top.v` |
-| Member 3 | `@deepanshu-sharma425` | Shared-memory baseline and metrics | `rtl/common/`, `rtl/baseline/`, `results/comparison.md` |
-| Member 4 | `@emphor11` | Verification and programs | `tb/`, `programs/`, `tools/`, `sim/` |
-| Member 5 | `@Adrenox20` | Report, video, repository lead | `report/`, `video/`, `docs/`, `README.md` |
+| Member 1 | Kanishk (`@kanishksharma04`) | Harvard memory core | `rtl/mem/` |
+| Member 2 | Adarsh (`@AdarshVashith`) | Processor and top-level integration | `rtl/core/`, `rtl/harvard_top.v` |
+| Member 3 | Deepanshu (`@deepanshu-sharma425`) | Shared-memory baseline and metrics | `rtl/common/`, `rtl/baseline/`, `results/comparison.md` |
+| Member 4 | Daksh (`@emphor11`) | Verification and programs | `tb/`, `programs/`, `tools/`, `sim/` |
+| Member 5 | Ram (`@Adrenox20`) | Report, video, repository lead | `report/`, `video/`, `docs/`, `README.md` |
 
 ## Block diagram
 
@@ -67,8 +67,8 @@ make waves PROG=memcopy   # open the comparison waveform (GTKWave, or Surfer if 
 make figure    # regenerate the report's waveform figure from the simulation
 ```
 
-The report compiles with any LaTeX distribution or Overleaf (`report/main.tex`), or locally with
-`tectonic report/main.tex`. All figures are TikZ sources in `report/figures/`.
+The report compiles with pdfLaTeX + BibTeX (Overleaf, TeX Live, MiKTeX), or locally with
+`cd report && tectonic main.tex`. Both produce Times text, as IEEE requires. All figures are TikZ sources in `report/figures/`.
 
 Every testbench is self-checking and ends with `PASS` or `FAIL (n errors)`. Logs are written to
 `results/logs/`.
@@ -86,7 +86,8 @@ programs/       basic, array_sum, memcopy, count_loop (.s, .hex, _data.hex)
 tools/asm.py    assembler for the instruction subset
 sim/Makefile    build and run targets
 results/        comparison table and simulation logs
-report/         IEEE-format report (LaTeX)
+report/         IEEE-format report (LaTeX source, TikZ figures, PDF)
+docs/           team workflow document
 video/          video script and link
 ```
 
@@ -103,5 +104,7 @@ Measured by `make compare`; full table and discussion in [results/comparison.md]
 
 ## Report and video
 
-- Report PDF: [report/main.pdf](report/main.pdf) (draft; names still to be filled in)
+- Report PDF: [report/main.pdf](report/main.pdf)
+- Video script: [video/script.md](video/script.md)
+- Team workflow and member prompts: [docs/TEAM_WORKFLOW.md](docs/TEAM_WORKFLOW.md)
 - Demo video: [Google Drive Link](https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing)
