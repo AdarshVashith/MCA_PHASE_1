@@ -3,30 +3,30 @@
 **Video Link:** [Google Drive](https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing)
 
 Budget at ~140 words per minute. Each member records their own segment (screen capture + voice).
-Replace "Member N" with real names before recording.
 
 | Time | Speaker | Words | On screen |
 |---|---|---|---|
-| 0:00-0:30 | Member 5 | ~70 | Title slide, team names |
-| 0:30-1:15 | Member 1 | ~105 | Memory block diagram, memory map |
-| 1:15-2:00 | Member 2 | ~105 | Datapath diagram, LW highlighted |
-| 2:00-3:00 | Member 4 | ~140 | Terminal `make compare`, GTKWave |
-| 3:00-3:50 | Member 3 | ~115 | FSM diagram, results table |
-| 3:50-4:40 | Member 5 | ~115 | Repo tour on GitHub |
+| 0:00-0:30 | Ram (M5) | ~70 | Title slide, team names |
+| 0:30-1:15 | Kanishk (M1) | ~105 | Memory block diagram, memory map |
+| 1:15-2:00 | Adarsh (M2) | ~105 | Datapath diagram, LW highlighted |
+| 2:00-3:00 | Daksh (M4) | ~140 | Terminal `make compare`, GTKWave |
+| 3:00-3:50 | Deepanshu (M3) | ~115 | FSM diagram, results table |
+| 3:50-4:40 | Ram (M5) | ~115 | Repo tour on GitHub |
 
 ---
 
-## 0:00-0:30 · Introduction (Member 5)
+## 0:00-0:30 · Introduction (Ram)
 
 *Screen: title slide "Project 9: Instruction and Data Memory Hierarchy", then the five names.*
 
-> Hello, we are Member 1, Member 2, Member 3, Member 4 and Member 5, and this is Project 9,
+> Hello, we are Kanishk, Adarsh, Deepanshu, Daksh and Ram,
+> and this is Project 9,
 > Instruction and Data Memory Hierarchy. A processor needs memory for two things: fetching its
 > instructions and reading or writing data. We built a Harvard design that gives each its own
 > memory, ran a small RISC-V processor on it, and measured it against a design where both share one
 > memory.
 
-## 0:30-1:15 · Harvard memory architecture (Member 1)
+## 0:30-1:15 · Harvard memory architecture (Kanishk)
 
 *Screen: memory subsystem block diagram; then the memory map table.*
 
@@ -38,7 +38,7 @@ Replace "Member N" with real names before recording.
 > requests into the right enable signal. Because the two ports share no bus and no memory array, an
 > instruction fetch and a data access happen in the same clock cycle.
 
-## 1:15-2:00 · Processor datapath (Member 2)
+## 1:15-2:00 · Processor datapath (Adarsh)
 
 *Screen: datapath diagram; highlight the path of one LW.*
 
@@ -50,7 +50,7 @@ Replace "Member N" with real names before recording.
 > goes out on the data port, the word comes back, and on the clock edge it is written into the
 > destination register. Fetch and load, one cycle.
 
-## 2:00-3:00 · Live simulation (Member 4)
+## 2:00-3:00 · Live simulation (Daksh)
 
 *Screen: terminal, run `make compare`; then GTKWave with `make waves PROG=memcopy`.*
 
@@ -64,7 +64,7 @@ Replace "Member N" with real names before recording.
 > first carries the program counter, then in the next cycle the data address. The same
 > instruction takes two cycles.
 
-## 3:00-3:50 · Baseline and comparison (Member 3)
+## 3:00-3:50 · Baseline and comparison (Deepanshu)
 
 *Screen: the two-state FSM diagram, then results/comparison.md.*
 
@@ -75,7 +75,7 @@ Replace "Member N" with real names before recording.
 > one on every program. The baseline ranges from 1.02 for a register-only loop to 1.37 for our most
 > memory-heavy program. The more a program touches memory, the more the separate paths help.
 
-## 3:50-4:40 · Status and Phase II (Member 5)
+## 3:50-4:40 · Status and Phase II (Ram)
 
 *Screen: GitHub repository: folders, commit history, README, report PDF.*
 
@@ -88,4 +88,6 @@ Replace "Member N" with real names before recording.
 
 ---
 
-Video link: TODO (unlisted YouTube or Drive, link access on)
+Video link: [Google Drive](https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing)
+(same link as in `README.md`; sharing must be "Anyone with the link can view", checked from a
+logged-out browser window).
