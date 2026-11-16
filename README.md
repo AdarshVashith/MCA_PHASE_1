@@ -105,6 +105,6 @@ Measured by `make compare`; full table and discussion in [results/comparison.md]
 ## Report and video
 
 - Report PDF: [report/main.pdf](report/main.pdf)
-- Video script: [video/script.md](video/script.md)
-- Team workflow and member prompts: [docs/TEAM_WORKFLOW.md](docs/TEAM_WORKFLOW.md)
-- Demo video: [Google Drive Link](https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing)
+
+
+
