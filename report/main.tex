@@ -10,9 +10,12 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tabularx}
+\usepackage{multirow}
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
 
 % ---------------------------------------------------------------------------
 % Team details: set these once; they are used in the author block and in the
@@ -20,20 +23,20 @@
 % ---------------------------------------------------------------------------
 % Names confirmed by the team on 15 Nov 2026.
 \newcommand{\MemA}{Kanishk}     % Member 1, GitHub kanishksharma04
-\newcommand{\MemB}{Adarsh}    % Member 2, GitHub AdarshVashith
-\newcommand{\MemC}{Deepanshu}     % Member 3, GitHub deepanshu-sharma425
-\newcommand{\MemD}{Daksh}     % Member 4, GitHub emphor11
-\newcommand{\MemE}{Ram}     % Member 5, GitHub Adrenox20
+\newcommand{\MemB}{Adarsh}      % Member 2, GitHub AdarshVashith
+\newcommand{\MemC}{Deepanshu}   % Member 3, GitHub deepanshu-sharma425
+\newcommand{\MemD}{Daksh}       % Member 4, GitHub emphor11
+\newcommand{\MemE}{Ram}         % Member 5, GitHub Adrenox20
 \newcommand{\Dept}{Department of Computer Science and Artificial Intelligence}
 \newcommand{\Inst}{Newton School of Technology, Rishihood University, Sonipat, Haryana}
 
 \begin{document}
 
 \title{Instruction and Data Memory Hierarchy:\\
-A Harvard Memory Organisation for a RISC-V Subset Processor}
+From a Harvard Memory Organisation to Split Caches\\over a Shared Memory}
 
 \author{\IEEEauthorblockN{\MemA, \MemB, \MemC, \MemD, \MemE}
-\IEEEauthorblockA{Modern Computer Architecture, Project 9\\
+\IEEEauthorblockA{Modern Computer Architecture, Project 9 (Final Report, Phase II)\\
 \Dept\\
 \Inst}}
 
@@ -41,26 +44,32 @@ A Harvard Memory Organisation for a RISC-V Subset Processor}
 
 % =============================================================================
 \begin{abstract}
-In a stored-program computer, instructions and data must both be read from
-memory. When they share a single memory port, as in the classic von Neumann
+When instructions and data share one memory port, as in the von Neumann
 organisation, an instruction fetch and a load or store cannot happen in the
-same clock cycle, so every memory instruction costs extra time. A Harvard
-organisation removes this conflict by giving instructions and data separate
-memories and separate paths. This project implements a simplified Harvard
-memory subsystem in synthesizable Verilog: a read-only instruction memory, a
-data RAM, an address decoder with a memory-mapped output register and fault
-detection, and read/write control logic. A single-cycle processor for a
-ten-instruction subset of RV32I drives the memories, and a second processor
-with one shared memory port serves as the baseline. Both systems run the same
-machine-code programs and are checked against each other by a self-checking
-testbench. In simulation, the Harvard design completes every instruction in
-one cycle (CPI~=~1.00), while the shared-memory baseline reaches a CPI of
-1.02 to 1.37 depending on the fraction of loads and stores, confirming that
-baseline cycles equal Harvard cycles plus the number of data accesses.
+same cycle. A Harvard organisation removes this conflict with separate
+instruction and data memories. We implement both in synthesizable Verilog
+around the same single-cycle processor for a 25-instruction subset of RV32I,
+and then extend the study to a realistic memory hierarchy: a
+\emph{modified Harvard} system with split, direct-mapped, write-through
+level-1 instruction and data caches, a write buffer and an arbiter in front
+of one unified memory of configurable latency, compared with a von Neumann
+system that has a single unified cache of the same capacity and with one that
+has no cache. With ideal single-cycle memories, the Harvard design runs at a
+CPI of exactly 1.00, while the shared-memory baseline needs 1.02 to 1.45,
+i.e.\ one extra cycle per load or store. In a sweep of 104 configurations over
+eight programs, all checked against an independent instruction-set and cache
+model, split caches give a geometric-mean CPI of 1.47 at a memory latency of
+four cycles, against 2.03 for the unified cache and 4.74 without a cache. The
+unified cache loses both to its single port and to conflict misses between
+code and data that map to the same cache lines; the write buffer adds up to
+1.41$\times$. In synthesis for a Xilinx 7-series FPGA, the split organisation
+also uses about 20\% fewer LUTs than its shared counterpart, both with ideal
+memories and with caches.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Harvard architecture, von Neumann architecture, memory hierarchy, RISC-V, Verilog, CPI
+Harvard architecture, von Neumann architecture, memory hierarchy, split cache,
+unified cache, write buffer, RISC-V, Verilog, CPI
 \end{IEEEkeywords}
 
 % =============================================================================
@@ -74,26 +83,32 @@ its next instruction and to read or write data. If both go through the same
 memory port, they compete for it. Backus called the single channel between
 processor and memory the ``von Neumann bottleneck''~\cite{backus1978}, and the
 growing gap between processor and memory speed later became known as the
-memory wall~\cite{wulf1995}. Competition for one memory port is the simplest
-form of this bottleneck~\cite{hennessy_quant}.
+memory wall~\cite{wulf1995}.
 
 The Harvard organisation separates the two: instructions come from an
 instruction memory and data from a data memory, each with its own address and
-data paths. A fetch and a data access can then be performed in the same
+data paths, so a fetch and a data access can be performed in the same
 cycle. Modern processors use a modified form of this idea, with split level-1
 instruction and data caches in front of a unified main
 memory~\cite{patterson_riscv,hennessy_quant}.
 
-This project builds both organisations in Verilog around the same small
-processor and measures the difference directly. The contributions are:
-(i) a Harvard memory subsystem with independent instruction and data ports,
-address decoding and read/write control;
-(ii) a single-cycle RV32I-subset processor that uses both ports in the same
-cycle;
-(iii) a shared-memory baseline with one port and a two-state controller; and
-(iv) a self-checking verification flow that runs identical programs on both
-designs and reports cycles, CPI and the number of cycles in which a fetch and
-a data access occur simultaneously.
+Phase~I of this project built a Harvard memory subsystem and a shared-memory
+baseline around the same small processor and measured the difference with
+ideal single-cycle memories. Phase~II, reported here together with Phase~I,
+asks what happens when memory is not ideal. Its contributions are:
+(i) an extension of the processor from 10 to 25 RV32I instructions
+(shifts, comparisons, signed branches, jumps and calls, upper immediates),
+with stall support in both cores;
+(ii) a reusable direct-mapped, write-through, no-write-allocate cache with
+a one-entry write buffer, a lower-level memory with configurable latency
+and an instruction-first memory arbiter;
+(iii) two complete hierarchies built from them, a modified Harvard system
+with split caches and a von Neumann system with a unified cache of the same
+capacity;
+(iv) a Python instruction-set simulator that serves as an independent golden
+model, including the expected cache misses, and a parameter sweep of 104
+configurations that is checked against it; and
+(v) FPGA synthesis of all four systems.
 
 % =============================================================================
 \section{Literature Review}
@@ -114,23 +129,16 @@ and extra hardware for a second set of buses~\cite{hennessy_quant}.
 \subsection{Modified Harvard in practice}
 Pure Harvard machines are rare in general-purpose computing, but the idea is
 widespread. Many microcontrollers and digital signal processors keep program
-code in on-chip flash and data in a separate SRAM, each with its own bus, so
-that an instruction can be fetched while an operand is being read. In
+code in on-chip flash and data in a separate SRAM, each with its own bus. In
 general-purpose processors, the split appears in the cache hierarchy: the
 level-1 cache is divided into an instruction cache and a data cache that can
 be accessed in parallel by the pipeline, while lower levels and main memory
-remain unified~\cite{patterson_riscv,hennessy_quant}. Smith's survey of cache
-memories already discusses this choice between split instruction/data caches
-and a unified cache, noting that a split design lets an instruction fetch and
-a data access proceed in parallel~\cite{smith1982}. This ``modified
+remain unified~\cite{patterson_riscv,hennessy_quant}. This ``modified
 Harvard'' arrangement gives the bandwidth of separate paths near the core and
-the flexibility of a single address space further away. As the gap between
-processor and memory speed grows~\cite{wulf1995}, providing enough memory
-bandwidth to the core matters more, not less.
+the flexibility of a single address space further away.
 
 \subsection{Single-cycle and multi-cycle processors}
-Textbook designs make the effect of memory organisation explicit. A
-single-cycle processor that executes a load in one cycle must read an
+A single-cycle processor that executes a load in one cycle must read an
 instruction and a data word in the same cycle, and therefore needs separate
 instruction and data memories~\cite{patterson_riscv,harris_riscv}. A
 multi-cycle processor can share one memory between instructions and data by
@@ -139,53 +147,97 @@ taken by our baseline.
 
 \subsection{RISC-V as a teaching ISA}
 RISC-V is an open instruction set with a small base integer
-ISA~\cite{riscv_isa}. Its regular encodings (fixed 32-bit instructions with
-register fields in fixed positions) keep the decoder small, and it is the ISA
-used by current editions of standard textbooks~\cite{patterson_riscv,harris_riscv}.
-This makes a subset of RV32I a natural choice for an educational processor.
-Asanovi\'{c} and Patterson argue that an instruction set should be an open
-standard, as networking protocols are, and give RISC-V's free licence and
-simple base ISA as reasons for adopting it in both research and
+ISA~\cite{riscv_isa}. Its regular encodings keep the decoder small, and it is
+the ISA used by current editions of standard
+textbooks~\cite{patterson_riscv,harris_riscv}. Asanovi\'{c} and Patterson
+argue that an instruction set should be an open standard and give RISC-V's
+free licence and simple base ISA as reasons for adopting it in research and
 industry~\cite{asanovic2014free}.
 
 \subsection{RISC-V soft processors on FPGAs}
-Because the ISA is open, many RISC-V cores have been written in HDL and
-implemented on FPGAs. Miyazaki \emph{et al.} describe RVCoreP, an RV32I soft
-processor with a five-stage pipeline written in Verilog and evaluated on a
-Xilinx Artix-7 board; they optimise the instruction fetch unit, the ALU and
-the data memory to raise the clock frequency, and report IPC, operating
-frequency and resource use against the open-source VexRiscv
-core~\cite{miyazaki2020rvcorep}. That work targets performance. Ours is
+Many RISC-V cores have been written in HDL and implemented on FPGAs.
+Miyazaki \emph{et al.} describe RVCoreP, an RV32I soft processor with a
+five-stage pipeline evaluated on a Xilinx Artix-7 board; they optimise the
+instruction fetch unit, the ALU and the data memory to raise the clock
+frequency~\cite{miyazaki2020rvcorep}. That work targets performance. Ours is
 deliberately simpler: a single-cycle core without a pipeline, so that the
-only variable in the comparison is the memory organisation and its effect
-can be read directly from the cycle counts.
+only variable in the comparison is the memory organisation.
+
+\subsection{Caches, split versus unified}
+Wilkes proposed a small fast ``slave'' memory that holds recently used words
+of a larger, slower main memory~\cite{wilkes1965}, the idea behind every
+modern cache. Smith's survey of cache memories discusses, among many design
+choices, whether to split the cache into instruction and data halves or to
+keep one unified cache: a unified cache of the same total size usually has a
+somewhat lower miss ratio, because it balances its capacity between code and
+data automatically, but a split design lets an instruction fetch and a data
+access proceed in parallel~\cite{smith1982}. Hennessy and Patterson make the
+same trade-off quantitative and conclude that the structural hazard of a
+single port outweighs the miss-ratio advantage for pipelined
+processors~\cite{hennessy_quant}. Hill and Smith classify misses as
+compulsory, capacity and conflict misses and show how much of the miss ratio
+of a direct-mapped cache is due to conflicts~\cite{hill1989}; Jouppi shows
+that a small fully associative victim cache removes many of these conflict
+misses~\cite{jouppi1990}.
+
+\subsection{Write policies and write buffers}
+A write-through cache sends every store to the next level, which keeps
+memory up to date and makes the cache simple, at the cost of memory
+traffic. Jouppi studies write-through and write-back caches with and without
+write allocation and shows that a write buffer, which lets the processor
+continue while a store is still on its way to memory, removes most of the
+stall cost of write-through~\cite{jouppi1993}. Our Phase~II cache uses
+exactly this combination (write-through, no-write-allocate, write buffer)
+because it is the simplest correct design for a system with a single lower
+level, and we measure the effect of the buffer directly.
 
 % =============================================================================
 \section{Proposed Solution}
 
-\subsection{Architecture overview}
-Fig.~\ref{fig:block} shows the two systems. Both use the same instruction
-subset (ADD, SUB, AND, OR, ADDI, LW, SW, BEQ, BNE and EBREAK, encoded as in
-RV32I), the same data address map and the same performance counters, so that
-the only difference between them is the memory organisation.
+\subsection{Overview: four organisations, one processor}
+Table~\ref{tab:systems} lists the four systems. All of them run the same
+machine code, use the same data address map and the same performance
+counters, and reuse the same register file, ALU, immediate generator and
+control decoder, so that the memory organisation is the only difference
+between them.
+
+\begin{table}[t]
+\caption{The four organisations compared}
+\label{tab:systems}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.21\columnwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.07\columnwidth}@{}}
+\toprule
+Name & Organisation & Phase \\
+\midrule
+H (\texttt{harvard\_top}) & single-cycle core, separate instruction ROM and data RAM, both single-cycle & I \\
+VN (\texttt{vn\_top}) & two-state core, one single-cycle memory for code and data & I \\
+MH (\texttt{mh\_top}) & single-cycle core with stall, split I-cache and D-cache, arbiter, one unified memory of latency $L$ & II \\
+UC (\texttt{vnc\_top}) & two-state core with stall, one unified cache of the same total size, same memory & II \\
+NC (\texttt{vnc\_top}) & two-state core with stall, no cache, same memory & II \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \begin{figure*}[t]
 \centering
 \input{figures/block.tex}
-\caption{(a) Harvard system: the instruction port and the data port reach separate memories, so a fetch and a load/store happen in the same cycle. (b) Shared-memory baseline: one port carries both fetches and data accesses.}
+\caption{Phase I. (a) Harvard system: the instruction port and the data port reach separate memories, so a fetch and a load/store happen in the same cycle. (b) Shared-memory baseline: one port carries both fetches and data accesses.}
 \label{fig:block}
 \end{figure*}
 
 \subsection{Memory map}
-The instruction memory holds 256 words (byte addresses \texttt{0x000}--\texttt{0x3FF})
-and is loaded from a hex file. The data address space is shown in
-Table~\ref{tab:map}. In the baseline, one 512-word memory holds code in words
-0--255 and data in words 256--511; the top level adds \texttt{0x400} to
-data RAM addresses, so the same program and data images run unmodified on both
-designs.
+The instruction memory holds 256 words (byte addresses \texttt{0x000}--\texttt{0x3FF}).
+The data address space is shown in Table~\ref{tab:map}. Wherever code and
+data share one physical memory (VN, MH, UC, NC), that memory holds code in
+words 0--255 and data in words 256--511; the top level adds \texttt{0x400} to
+data RAM addresses, so the same program and data images run unmodified on all
+designs. The output register and invalid addresses never reach a memory or a
+cache.
 
 \begin{table}[t]
-\caption{Data address map (both designs)}
+\caption{Data address map (all designs)}
 \label{tab:map}
 \centering
 \begin{tabular}{ll}
@@ -199,45 +251,58 @@ other & invalid: write ignored, read 0, \texttt{d\_fault}=1 \\
 \end{tabular}
 \end{table}
 
-\subsection{Harvard memory subsystem}
+\subsection{Harvard memory subsystem (Phase I)}
 The \texttt{harvard\_mem} module contains four blocks. The instruction memory
 is a read-only array with combinational read. The data memory is a RAM with
 synchronous write and combinational read. The address decoder compares the
 data address against the map and asserts exactly one of \texttt{sel\_ram},
 \texttt{sel\_io} or \texttt{addr\_fault}. The read/write controller turns the
-processor's write and read requests into a RAM write enable or an
-\texttt{out\_port} write enable and selects the read data, returning zero for
-the output register and for invalid addresses. The instruction port and the
-data port share no address bus, data bus or array, so a fetch and a data
-access complete in the same cycle.
+processor's requests into a RAM write enable or an \texttt{out\_port} write
+enable and selects the read data. The instruction port and the data port
+share no address bus, data bus or array, so a fetch and a data access
+complete in the same cycle (Fig.~\ref{fig:block}a).
 
-\subsection{Processor}
+\subsection{Processor and instruction-set extension}
 The processor is single-cycle: in one clock period it fetches the instruction
 at the program counter, decodes it, reads two registers, computes a result,
-address or branch comparison in the ALU, performs the data access for LW or
-SW, and writes the result back. Branches use the ALU's subtraction and zero
-flag. EBREAK stops the program counter and raises a \texttt{halt} signal. The
-processor contains no memory; it only drives the instruction and data ports.
-Fig.~\ref{fig:datapath} highlights the path of a load: the instruction is
-fetched, the address is computed and the data word is read and written back,
-all within one clock period.
+address or branch condition in the ALU, performs the data access for LW or
+SW, and writes the result back (Fig.~\ref{fig:datapath}). Phase~I supported
+ADD, SUB, AND, OR, ADDI, LW, SW, BEQ, BNE and EBREAK. Phase~II adds XOR, SLT,
+SLL, SRL and their immediate forms, BLT and BGE, JAL and JALR, and LUI, all
+encoded as in RV32I~\cite{riscv_isa}. The ALU gained XOR, a signed
+set-less-than and two shifts while keeping a 3-bit operation code; BLT and
+BGE use the ALU's set-less-than output in the same way that BEQ and BNE use
+its zero flag. The write-back multiplexer gained two inputs, PC$+4$ for the
+link register of JAL and JALR and the immediate for LUI, and the next-PC
+logic gained the jump targets. These instructions make it possible to write
+programs with nested loops, signed comparisons and subroutine calls.
 
 \begin{figure}[t]
 \centering
 \resizebox{\columnwidth}{!}{\input{figures/datapath.tex}}
-\caption{Single-cycle datapath of \texttt{cpu\_core}. The highlighted path is an LW, which uses the instruction memory and the data memory in the same cycle.}
+\caption{Single-cycle datapath of \texttt{cpu\_core} (Phase I instruction subset shown). The highlighted path is an LW, which uses the instruction memory and the data memory in the same cycle. Phase II adds PC$+4$ and immediate inputs to the write-back multiplexer, jump targets to the next-PC logic, and a stall input.}
 \label{fig:datapath}
 \end{figure}
 
+For Phase~II the core also gained two inputs, \texttt{i\_ready} and
+\texttt{d\_ready}. When \texttt{i\_ready} is low, no valid instruction is
+available: the core decodes a NOP in its place and holds its state. When a
+load or store is pending and \texttt{d\_ready} is low, the core holds the
+program counter and does not write the register file. During a stall all of
+the core's outputs stay constant, so the memory side sees a stable request.
+The Phase~I top level ties both inputs high, which gives cycle-identical
+Phase~I behaviour; the Phase~I regression confirms this.
+
 \subsection{Shared-memory baseline}
-The baseline processor reuses the register file, ALU, immediate generator and
-control decoder, but has a single memory bus driven by a two-state controller.
-In the \textsc{FetchExec} state the bus carries the program counter;
-arithmetic, branch and EBREAK instructions complete in this state. A load or
-store cannot use the bus a second time, so the instruction is latched and the
-controller moves to the \textsc{Mem} state, where the bus carries the data
-address and the access is performed. Loads and stores therefore take two
-cycles and all other instructions one (Fig.~\ref{fig:fsm}).
+The baseline processor has a single memory bus driven by a two-state
+controller (Fig.~\ref{fig:fsm}). In the \textsc{FetchExec} state the bus
+carries the program counter; arithmetic, branch, jump and EBREAK
+instructions complete in this state. A load or store cannot use the bus a
+second time, so the instruction is latched and the controller moves to the
+\textsc{Mem} state, where the bus carries the data address. Loads and stores
+therefore take two cycles and all other instructions one. For Phase~II this
+core gained a \texttt{m\_ready} input: when the bus transfer of the current
+cycle has not finished, it holds its state, PC and latched instruction.
 
 \begin{figure}[t]
 \centering
@@ -246,45 +311,106 @@ cycles and all other instructions one (Fig.~\ref{fig:fsm}).
 \label{fig:fsm}
 \end{figure}
 
-\subsection{Verification}
-A small Python assembler converts the test programs into hex images; its
-self-test compares 13 encodings against values worked out by hand. Unit
-testbenches check the address decoder at the edges of every region, the
-memories, and \texttt{harvard\_mem}, including a cycle in which a fetch and
-a data write occur together. System testbenches run each program until halt
-and check registers, data memory, \texttt{out\_port} and the counters.
-A comparison testbench runs both designs on the same program and checks that
-all 32 registers and 256 data words are identical, that Harvard cycles equal
-Harvard instructions, and that baseline cycles equal Harvard cycles plus the
-number of data accesses. All testbenches are self-checking. The design is
-written in Verilog-2001~\cite{ieee1364} and simulated with Icarus Verilog.
-
-Fig.~\ref{fig:wave} is generated directly from the simulation trace of the
-\texttt{memcopy} program. In cycles 4 and 5 the Harvard design fetches an
-instruction and performs a load, then a store, in the same cycle. The
-baseline needs cycles 4--7 for the same two instructions, because each one
-uses the single port twice: first for the fetch, then (in the MEM state, shaded)
-for the data access.
+\subsection{Phase II: the memory hierarchy}
+Fig.~\ref{fig:hier} shows the two Phase~II systems. They are built from
+three new modules.
 
 \begin{figure*}[t]
 \centering
-\input{figures/wave.tex}
-\caption{Waveform from the \texttt{memcopy} simulation, one column per clock cycle (sampled mid-cycle, addresses in hex). Harvard: the data address (green) is active in the same cycle as the instruction address. Shared memory: data accesses (orange) take a separate cycle on the same address bus.}
-\label{fig:wave}
+\resizebox{\textwidth}{!}{\input{figures/hier.tex}}
+\caption{Phase II. (a) Modified Harvard: split level-1 caches keep the Harvard property near the core, while a single memory below them holds code and data. (b) Von Neumann with one unified cache of the same total capacity in front of the same memory.}
+\label{fig:hier}
 \end{figure*}
 
-\subsection{Results}
-Table~\ref{tab:results} lists the simulation results for four programs with
-different load/store fractions. All testbenches passed. The Harvard design
-achieves a CPI of exactly 1.00 on every program, and every one of its data
-accesses overlaps an instruction fetch. On the baseline, each data access adds
-one cycle, giving CPI~$=1+f$, where $f$ is the fraction of loads and stores.
-The benefit of the Harvard organisation therefore grows with the memory
-intensity of the program, from 1.02$\times$ for a register-only loop to
-1.37$\times$ for the program with the most loads and stores.
+\emph{Cache} (\texttt{cache.v}). A direct-mapped cache, parameterised by the
+number of lines and the words per line (four in all experiments). A read
+that hits completes in the same cycle. A read miss requests the whole line
+from memory, writes it into the cache when memory answers, and completes on
+the next cycle as a hit, so the miss penalty is exactly $L$ cycles. Stores
+are write-through and no-write-allocate: a store that hits also updates the
+cached word, a store that misses does not bring the line in. With the write
+buffer enabled, a store is placed in a one-entry buffer and completes at
+once if the buffer is empty or is being drained in that very cycle;
+otherwise the core waits. A read miss waits until the buffer is empty, so
+memory is always up to date before a line is fetched and no read-after-write
+hazard is possible. The same module serves as I-cache (it never sees a
+store), D-cache and unified cache; with caching disabled it becomes an
+uncached path that forwards each memory word to the core.
+
+\emph{Lower-level memory} (\texttt{main\_mem.v}). One 512-word memory with a
+request/ready handshake and a fixed access time: \texttt{ready} is high in
+the $L$-th cycle of a request, so $L=1$ is the ideal single-cycle memory of
+Phase~I. A read returns the full four-word line in one transfer.
+
+\emph{Arbiter} (\texttt{mem\_arbiter.v}). In MH, the I-cache and the D-cache
+share the memory. Instruction requests have priority, and a transfer that
+has started keeps the memory until it completes. Because the core is
+single-cycle, the D-cache can only miss while the I-cache hits, so the only
+real conflict is an I-cache miss that arrives while the write buffer is
+draining; the arbiter counts these cycles.
+
+\emph{Timing design.} Two design rules keep MH free of combinational loops,
+which matters for both simulation and timing analysis. First, the caches do
+not forward the missing word to the core during the refill cycle: forwarding
+would create the path memory $\rightarrow$ instruction $\rightarrow$ data
+address $\rightarrow$ arbiter $\rightarrow$ memory. Second, the memory's
+\texttt{ready} and the arbiter's idle grant depend only on registered state,
+not on the other side's request. One loop was found the hard way: with a
+one-line I-cache, deriving the I-cache read enable from \texttt{halt} closed
+the loop \texttt{i\_ready} $\rightarrow$ instruction $\rightarrow$
+\texttt{halt} $\rightarrow$ read enable $\rightarrow$ \texttt{i\_ready}, and
+the simulator oscillated when a stale EBREAK sat in the missing line. The
+read enable is now constant. Yosys confirms that MH has no logic loop; UC
+inherits the structural false loop of the Phase~I baseline.
+
+\subsection{Verification}
+Verification has four layers, all self-checking.
+(1) A two-pass assembler, whose self-test now checks 29 encodings, including
+reference encodings such as \texttt{ret}~$=$~\texttt{0x00008067}.
+(2) A Python instruction-set simulator (\texttt{iss.py}), written
+independently of the RTL, that executes a program image and predicts the
+final registers and memory, the dynamic instruction and load/store counts,
+and the number of misses of split and unified direct-mapped caches of any
+size.
+(3) Unit testbenches for the decoder, memories and \texttt{harvard\_mem}, and
+a directed cache test that checks miss timing ($L{+}1$ cycles including the
+hit), hits, buffered stores, a store waiting for a busy buffer,
+no-write-allocate, conflict eviction and the uncached mode.
+(4) System testbenches. The Phase~I comparison testbench runs H and VN side by
+side and checks that VN cycles equal H cycles plus loads and stores. The
+Phase~II testbench runs H, MH, UC and NC on the same program and checks that
+all 32 registers, all 256 data words and the output register agree with H,
+that instruction counts agree, and that every cycle is accounted for (MH:
+cycles $=$ instructions $+$ I-stall $+$ D-stall cycles; UC, NC: cycles $=$
+bus cycles $+$ stall cycles). With $L=1$ and no cache, NC must reproduce the
+Phase~I baseline cycle for cycle. Finally, a sweep script runs 104
+configurations (8 programs $\times$ latencies 1--16, cache sizes 1--32
+lines, write buffer on/off) and compares every RTL miss count with the
+ISS prediction. Every check passes. The design is written in
+Verilog-2001~\cite{ieee1364} and simulated with Icarus Verilog.
+
+The eight programs are: \texttt{basic} (every Phase~I instruction once),
+\texttt{array\_sum}, \texttt{memcopy} and \texttt{count\_loop} from Phase~I,
+and four Phase~II programs: \texttt{isa\_test} (every new instruction once),
+\texttt{bubble\_sort} (16 signed words, 826 instructions, 45\% loads and
+stores), \texttt{func\_call} (sum of squares through a shift-and-add multiply
+subroutine called with JAL/JALR) and \texttt{transpose} (an $8\times8$ matrix
+transpose followed by a row sum).
+
+% =============================================================================
+\section{Results and Discussion}
+
+\subsection{Ideal memories: Harvard versus shared memory}
+Table~\ref{tab:results} repeats the Phase~I comparison for all eight
+programs. The Harvard design achieves a CPI of exactly 1.00 on every program,
+and every one of its data accesses overlaps an instruction fetch. On the
+baseline, each load or store adds one cycle, so CPI~$=1+f$, where $f$ is the
+fraction of loads and stores; the benefit of the Harvard organisation grows
+with the memory intensity of the program, from 1.02$\times$ for a
+register-only loop to 1.45$\times$ for \texttt{bubble\_sort}.
 
 \begin{table}[t]
-\caption{Simulation results (Icarus Verilog)}
+\caption{Ideal single-cycle memories (Icarus Verilog)}
 \label{tab:results}
 \centering
 \setlength{\tabcolsep}{3pt}
@@ -293,110 +419,309 @@ intensity of the program, from 1.02$\times$ for a register-only loop to
 Program & Instr & LS\% & \multicolumn{2}{c}{Harvard} & \multicolumn{2}{c}{Baseline} & Simul. \\
  & & & Cyc & CPI & Cyc & CPI & cycles \\
 \midrule
-basic      & 19 & 36.8 & 19 & 1.00 & 26 & 1.37 &  7 \\
-array\_sum & 38 & 26.3 & 38 & 1.00 & 48 & 1.26 & 10 \\
-memcopy    & 54 & 31.5 & 54 & 1.00 & 71 & 1.31 & 17 \\
-count\_loop& 64 &  1.6 & 64 & 1.00 & 65 & 1.02 &  1 \\
+basic        &  19 & 36.8 &  19 & 1.00 &   26 & 1.37 &   7 \\
+array\_sum   &  38 & 26.3 &  38 & 1.00 &   48 & 1.26 &  10 \\
+memcopy      &  54 & 31.5 &  54 & 1.00 &   71 & 1.31 &  17 \\
+count\_loop  &  64 &  1.6 &  64 & 1.00 &   65 & 1.02 &   1 \\
+isa\_test    &  38 & 13.2 &  38 & 1.00 &   43 & 1.13 &   5 \\
+bubble\_sort & 826 & 44.7 & 826 & 1.00 & 1195 & 1.45 & 369 \\
+func\_call   & 268 &  4.1 & 268 & 1.00 &  279 & 1.04 &  11 \\
+transpose    & 769 & 17.9 & 769 & 1.00 &  907 & 1.18 & 138 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Cycle counts are only half of the comparison; the other half is cost.
-Both top levels were synthesized with Yosys for a Xilinx 7-series FPGA
-(Table~\ref{tab:synth}). To keep the comparison fair, the Harvard
-instruction ROM was synthesized separately with pseudo-random contents:
-synthesized together with a program, the tool would hard-wire that program
-into the core and remove logic for unused instructions, which a writable
-shared memory does not allow. Even with the extra ROM, the Harvard system
-uses about 34\% fewer LUTs and 33 fewer flip-flops. The baseline pays for a
-512-word memory, a latched instruction register, the two-state controller and
-the address multiplexing in front of its single port; the 33 extra
-flip-flops are exactly the instruction register and the state bit. These are
-synthesis estimates, not post-implementation figures, and the maximum clock
-frequency has not yet been measured (Section~\ref{sec:concl}).
+\subsection{Timing behaviour}
+Fig.~\ref{fig:wave} is generated directly from the simulation trace of
+\texttt{memcopy} with ideal memories. In cycles 4 and 5 the Harvard design
+fetches an instruction and performs a load, then a store, in the same cycle;
+the baseline needs cycles 4--7 for the same two instructions.
+
+\begin{figure*}[t]
+\centering
+\input{figures/wave.tex}
+\caption{Phase I, ideal memories: waveform from the \texttt{memcopy} simulation, one column per clock cycle (sampled mid-cycle, addresses in hex). Harvard: the data address (green) is active in the same cycle as the instruction address. Shared memory: data accesses (orange) take a separate cycle on the same address bus.}
+\label{fig:wave}
+\end{figure*}
+
+Fig.~\ref{fig:wavehier} shows the same program on the modified Harvard
+system with $L=4$, also generated from simulation. In cycles 8--11 the
+I-cache fetches the line of the loop body (the core stalls, red); in cycles
+12--15 the first load misses in the D-cache. From cycle 16 on, both caches
+hit and the core again fetches and loads in the same cycle (green): the
+Harvard property survives the hierarchy. The store in cycle 17 goes into the
+write buffer and completes at once; the buffer drains to memory in cycles
+18--21 while the core keeps executing. In cycle 20 the core reaches the next
+instruction line (\texttt{0x20}), but the memory is busy with the drain: the
+I-cache waits two cycles (an arbitration conflict) and then fills in cycles
+22--25.
+
+\begin{figure*}[t]
+\centering
+\input{figures/wave_hier.tex}
+\caption{Phase II, modified Harvard with $L=4$ and 8+8 lines: \texttt{memcopy}, cycles 8--25, generated from simulation. Red: the core waits (I- or D-cache miss). Green: a data access completes in the same cycle as a fetch. ``memory'' shows who owns the shared memory: I-cache fill, D-cache fill, or write-buffer drain (D wr).}
+\label{fig:wavehier}
+\end{figure*}
+
+\subsection{Effect of memory latency}
+Fig.~\ref{fig:latency} shows the geometric-mean CPI of the eight programs as
+the latency of the shared memory grows from one to 16 cycles. Without a cache
+(NC), every fetch and every data access pays the full latency, so CPI grows
+linearly with $L$, from 1.21 (exactly the Phase~I baseline, as the testbench
+checks) to 18.8. Caches hide most of this: at $L=16$ the split caches reach a
+CPI of 3.03, a 6.2$\times$ improvement over no cache, and the unified cache
+4.45. At $L=1$ the split caches (1.11) are slower than the ideal Harvard
+design only by their compulsory misses, which cost one cycle each because
+the refill word is not forwarded. Their CPI is already lower than that of
+the ideal shared-memory machine (1.21): with split caches, the extra cycle of
+every load and store disappears.
+
+\begin{figure}[t]
+\centering
+\input{figures/latency.tex}
+\caption{Geometric-mean CPI of the eight programs versus the latency of the shared lower-level memory (cache lines of four words; split 8+8 lines, unified 16 lines).}
+\label{fig:latency}
+\end{figure}
+
+\subsection{Split versus unified caches}
+Table~\ref{tab:split} compares the two hierarchies at $L=4$ with the same
+total capacity of 64 words. The split caches are faster on every program, by
+1.01$\times$ (\texttt{count\_loop}) to 2.29$\times$ (\texttt{bubble\_sort}),
+and by 1.38$\times$ in the geometric mean. Two effects add up. The first is
+the one measured in Phase~I: even when every access hits, the unified cache
+has one port, so a load or store costs an extra cycle. The second is
+conflict misses. In the split design, the instruction and data streams never
+evict each other, so MH takes only compulsory misses (69 in total over all
+programs). In the unified cache, code starts at physical address
+\texttt{0x000} and data at \texttt{0x400}. Both are multiples of the cache
+size (256 bytes), so code word $k$ and data word $k$ map to the same line.
+In \texttt{bubble\_sort} the loop body and the array both start at line~0,
+so each load evicts the instruction line that the next fetch needs, and back:
+252 misses against 10 for the split caches. This is the classic
+direct-mapped conflict of Hill and Smith~\cite{hill1989}, and it would shrink
+with associativity, a victim cache~\cite{jouppi1990}, or a data segment that
+does not start at a multiple of the cache size.
+
+\begin{table}[t]
+\caption{Split (8+8 lines) vs.\ unified (16 lines) caches, $L=4$: CPI and misses}
+\label{tab:split}
+\centering
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Program & MH & UC & NC & \multicolumn{2}{c}{MH misses} & UC & MH vs. \\
+ & CPI & CPI & CPI & I & D & misses & UC \\
+\midrule
+basic        & 2.53 & 2.79 & 4.84 &  5 &  1 &   6 & 1.10$\times$ \\
+array\_sum   & 1.53 & 3.37 & 4.97 &  3 &  2 &  19 & 2.21$\times$ \\
+memcopy      & 1.41 & 2.24 & 5.20 &  3 &  2 &  12 & 1.59$\times$ \\
+count\_loop  & 1.12 & 1.14 & 4.02 &  2 &  0 &   2 & 1.01$\times$ \\
+isa\_test    & 2.29 & 2.45 & 4.45 & 10 &  0 &  10 & 1.07$\times$ \\
+bubble\_sort & 1.28 & 2.93 & 5.78 &  6 &  4 & 252 & 2.29$\times$ \\
+func\_call   & 1.09 & 1.13 & 4.15 &  6 &  0 &   6 & 1.04$\times$ \\
+transpose    & 1.13 & 1.46 & 4.71 &  7 & 18 &  48 & 1.29$\times$ \\
+\midrule
+geo.\ mean   & 1.47 & 2.03 & 4.74 & \multicolumn{3}{c}{} & 1.38$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Fig.~\ref{fig:size} varies the capacity. With the smallest caches (one line
+per split cache, two unified lines), the unified cache is slightly faster
+(CPI 2.65 vs.\ 2.77), and at 16 words it has fewer misses (451 vs.\ 590),
+because it can give more of its tiny capacity to whichever stream needs it.
+This is the miss-ratio advantage of unified caches described by
+Smith~\cite{smith1982}. It disappears as soon as the working sets fit: from 32
+words on the split caches are clearly faster, and from 64 words on both curves are
+flat. The split caches then see only compulsory misses, while the unified
+cache keeps its 355 misses at every size we tried, because the code/data
+aliasing described above does not depend on capacity as long as the cache
+is no larger than the 1\,KB distance between the two segments.
+
+\begin{figure}[t]
+\centering
+\input{figures/size.tex}
+\caption{Geometric-mean CPI versus total level-1 capacity at $L=4$ (four-word lines).}
+\label{fig:size}
+\end{figure}
+
+\subsection{Write buffer}
+Table~\ref{tab:wbuf} shows MH with and without the one-entry write buffer.
+Without it, a store waits the full memory latency. With it, the store
+completes at once and the drain overlaps with the following instructions
+(Fig.~\ref{fig:wavehier}). The buffer helps most where stores are frequent
+and spread out: \texttt{func\_call} stores one result per call and improves
+by 1.41$\times$ at $L=16$, \texttt{transpose} by 1.38$\times$. Bursts of
+stores are limited by the buffer's single entry: in \texttt{bubble\_sort},
+each swap issues two stores back to back, and 189 of its 208 data-stall
+cycles at $L=4$ are the second store waiting for the first to drain. A
+deeper buffer would remove most of them~\cite{jouppi1993}.
+
+\begin{table}[t]
+\caption{Modified Harvard CPI without and with the write buffer (8+8 lines)}
+\label{tab:wbuf}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrr}
+\toprule
+Program & \multicolumn{2}{c}{$L=4$} & \multicolumn{2}{c}{$L=16$} & Gain \\
+ & none & wbuf & none & wbuf & $L{=}16$ \\
+\midrule
+basic        & 2.58 & 2.53 & 7.63 & 7.58 & 1.01$\times$ \\
+array\_sum   & 1.61 & 1.53 & 3.50 & 3.11 & 1.13$\times$ \\
+memcopy      & 1.81 & 1.41 & 4.70 & 3.89 & 1.21$\times$ \\
+count\_loop  & 1.12 & 1.12 & 1.50 & 1.50 & 1.00$\times$ \\
+isa\_test    & 2.37 & 2.29 & 6.79 & 6.71 & 1.01$\times$ \\
+bubble\_sort & 1.51 & 1.28 & 3.48 & 2.80 & 1.24$\times$ \\
+func\_call   & 1.20 & 1.09 & 1.92 & 1.36 & 1.41$\times$ \\
+transpose    & 1.38 & 1.13 & 2.79 & 2.02 & 1.38$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Area}
+All designs were synthesized with Yosys for a Xilinx 7-series FPGA
+(Table~\ref{tab:synth}). As in Phase~I, the Harvard instruction ROM was
+synthesized separately with pseudo-random contents, since a ROM synthesized
+together with one program lets the tool delete logic for unused
+instructions. For the Phase~II systems, the lower-level memory was kept as a
+black box: it stands for block RAM or off-chip memory and is identical in
+both systems, so the numbers are the cost of the core and the level-1
+hierarchy. With ideal memories, the Harvard system uses 20\% fewer LUTs and
+33 fewer flip-flops than the shared-memory baseline (the latched instruction
+register and the state bit); the baseline pays for a 512-word memory, the
+two-state controller and the address multiplexing in front of its single
+port. The extended instruction set made both cores larger than in Phase~I,
+where the difference was 34\%. With caches, the split hierarchy again uses
+about 20\% fewer LUTs than the unified one, for practically the same number
+of flip-flops. Most of these flip-flops are the cache data arrays (two
+$32\times32$-bit arrays, or one $64\times32$): because a refill writes four
+words in one cycle, Yosys cannot map them to LUT-RAM. These are synthesis
+estimates; the maximum clock frequency needs Vivado place-and-route and was
+not measured.
 
 \begin{table}[t]
 \caption{Yosys synthesis, Xilinx 7-series (memcopy images)}
 \label{tab:synth}
 \centering
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{lrrrr}
 \toprule
 Design & Logic & LUT-RAM & Total & Flip- \\
  & LUTs & LUTs & LUTs & flops \\
 \midrule
-Harvard (core, data side) & 409 & 176 & 585 & 194 \\
-Harvard instruction ROM   & 128 &   0 & 128 &   0 \\
-\textbf{Harvard total}    & \textbf{537} & \textbf{176} & \textbf{713} & \textbf{194} \\
-\textbf{Shared memory}    & \textbf{776} & \textbf{304} & \textbf{1080} & \textbf{227} \\
+H: core, data side, counters   &  761 & 176 &  937 &  194 \\
+H: instruction ROM            &  128 &   0 &  128 &    0 \\
+\textbf{H total}              & \textbf{889} & \textbf{176} & \textbf{1065} & \textbf{194} \\
+\textbf{VN total}             & \textbf{1032} & \textbf{304} & \textbf{1336} & \textbf{227} \\
+\midrule
+\textbf{MH}: core + I/D caches + arbiter & \textbf{3864} & \textbf{56} & \textbf{3920} & \textbf{2520} \\
+\textbf{UC}: core + unified cache       & \textbf{4833} & \textbf{52} & \textbf{4885} & \textbf{2452} \\
+memory model (not in MH/UC)    &  653 & 1408 & 2061 &    8 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Limitations}
+The results should be read with the model's simplifications in mind. The
+lower-level memory has a fixed latency and returns a whole line in one
+transfer; a real DRAM has variable latency and a narrower bus. The core is
+single-cycle and not pipelined, so it cannot overlap a miss with useful
+work, which makes stalls more expensive than in a pipelined core. The
+programs are small kernels whose working sets fit in 64 words, which is why
+the curves in Fig.~\ref{fig:size} flatten early. And the unified-cache
+penalty depends on our choice of a 1\,KB distance between code and data, a
+common but not universal layout.
+
 % =============================================================================
 \section{Individual Contributions}
 
-Table~\ref{tab:contrib} summarises who built what; every entry corresponds
-to commits by that member in the project repository.
+Table~\ref{tab:contrib} summarises who built what across both phases. Every
+entry corresponds to commits by that member in the project repository.
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Individual contributions}
 \label{tab:contrib}
 \centering
 \small
-\setlength{\tabcolsep}{3pt}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.22\columnwidth}>{\raggedright\arraybackslash}p{0.22\columnwidth}>{\raggedright\arraybackslash}X@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.09\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-Member & Role & Modules / artefacts \\
+Member & Role & Phase I & Phase II \\
 \midrule
-\MemA & Harvard memory & instr\_mem, data\_mem, addr\_decoder, rw\_ctrl, harvard\_mem \\
-\MemB & Processor, integration & regfile, alu, imm\_gen, control, pc\_reg, cpu\_core, harvard\_top; repository set-up \\
-\MemC & Baseline, metrics & perf\_counters, shared\_mem, cpu\_core\_vn, vn\_top, comparison table, FPGA synthesis (Yosys) \\
-\MemD & Verification & assembler, programs, testbenches, Makefile, waveform figure \\
-\MemE & Report, video & report, figures, video script and video \\
+\MemA & Memory subsystem & instr\_mem, data\_mem, addr\_decoder, rw\_ctrl, harvard\_mem & cache (I-, D- and unified cache, write buffer), main\_mem, cache unit testbench \\
+\MemB & Processor, integration & regfile, alu, imm\_gen, control, pc\_reg, cpu\_core, harvard\_top; repository set-up & ISA extension (control, alu, imm\_gen), stall support in cpu\_core, mh\_top integration \\
+\MemC & Baseline, metrics, synthesis & perf\_counters, shared\_mem, cpu\_core\_vn, vn\_top, comparison table, Yosys synthesis & mem\_arbiter, event\_counter, stall support in cpu\_core\_vn, vnc\_top, synthesis of all Phase II designs, area table \\
+\MemD & Verification & assembler, programs, testbenches, Makefile, waveform figure & assembler extension, ISS golden model, four new programs, tb\_hier, parameter sweep, Phase II waveform \\
+\MemE & Report, video, repository & report, figures, video script and video & final report, Phase II figures and plots, README, documentation \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
-\textbf{\MemA} designed the Harvard memory subsystem: the read-only
-instruction memory, the data RAM, the address decoder with the
+\textbf{\MemA} designed the Harvard memory subsystem in Phase~I: the
+read-only instruction memory, the data RAM, the address decoder with the
 \texttt{out\_port} and fault regions, the read/write controller, and the
-\texttt{harvard\_mem} wrapper that keeps the two ports independent.
+\texttt{harvard\_mem} wrapper that keeps the two ports independent. In
+Phase~II \MemA{} designed the cache module used for the I-cache, the D-cache
+and the unified cache, including the write-through policy, the write
+buffer, the no-write-allocate rule and the uncached mode, the lower-level
+memory with configurable latency, and the directed cache testbench.
 
 \textbf{\MemB} built the single-cycle processor (register file, ALU,
 immediate generator, control decoder, program counter and datapath) and the
-\texttt{harvard\_top} integration, and set up the repository and its
-interface specification.
+\texttt{harvard\_top} integration in Phase~I, and set up the repository and
+its interface specification. In Phase~II \MemB{} extended the instruction
+set to 25 instructions, added the stall interface to the core, and
+integrated the modified Harvard system \texttt{mh\_top}.
 
 \textbf{\MemC} wrote the performance counters, the 512-word shared memory,
-the two-state baseline processor and \texttt{vn\_top}, and recorded the
-comparison table and simulation logs.
+the two-state baseline processor and \texttt{vn\_top}, and ran the Phase~I
+synthesis. In Phase~II \MemC{} wrote the memory arbiter and the event
+counters, added stall support to the baseline core, built the unified-cache
+system \texttt{vnc\_top}, and synthesized all Phase~II designs.
 
-\textbf{\MemD} wrote the two-pass assembler, the four benchmark programs,
-the unit, system and comparison testbenches, the simulation Makefile and the
-script that turns the simulation trace into Fig.~\ref{fig:wave}.
+\textbf{\MemD} wrote the two-pass assembler, the four Phase~I programs, the
+unit, system and comparison testbenches, the simulation Makefile and the
+waveform generator in Phase~I. In Phase~II \MemD{} extended the assembler,
+wrote the instruction-set simulator used as golden model, the four new
+programs, the four-system testbench, the parameter sweep with its
+cross-check, and the Phase~II waveform generator.
 
-\textbf{\MemE} wrote this report and its TikZ figures, wrote the video
-script, and edited the prototype video\footnote{Video demonstration: \url{https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing}}.
+\textbf{\MemE} wrote the Phase~I report and its figures, the video script,
+and edited the prototype video\footnote{Phase I video demonstration: \url{https://drive.google.com/drive/folders/1SoN0jAJ3BcboLqRUhE7eCVd88pDHP2RP?usp=sharing}}.
+In Phase~II \MemE{} wrote this final report, its block diagram and plots,
+and maintained the README and the project documentation.
 
 % =============================================================================
-\section{Conclusion and Phase II Plan}
+\section{Conclusion}
 \label{sec:concl}
 We implemented a Harvard memory organisation and a shared-memory baseline
-around the same RV32I-subset processor and showed in simulation that separate
-instruction and data paths remove the extra cycle that every load and store
-costs on a single port. In Phase~II we plan to
-(i) add a small instruction cache and data cache in front of a unified
-memory (a modified Harvard design), (ii) add memory latency to study
-stalls, (iii) implement both designs on an FPGA board to measure their
-maximum clock frequency and confirm the area figures, and (iv) extend the instruction subset.
+around the same RV32I-subset processor, and then extended both into a
+realistic memory hierarchy with caches, a write buffer and a slow shared
+memory. With ideal memories, separate instruction and data paths remove the
+extra cycle that every load and store costs on a single port (CPI 1.00
+against 1.02--1.45). With a shared memory of realistic latency, caches are
+essential (6.2$\times$ at $L=16$), and keeping them split, as modern
+processors do, is better than unifying them: at equal capacity the split
+caches are 1.38$\times$ faster in the geometric mean, because they keep the
+two ports and avoid conflict misses between code and data, and they use
+about 20\% fewer LUTs. The unified cache wins only when the capacity is so
+small that sharing it matters more than the second port. Everything is
+verified against an independent golden model, in 104 configurations.
+
+Natural next steps are a pipelined core, which would overlap misses with
+execution; a deeper write buffer, which our \texttt{bubble\_sort} results
+call for; set-associative caches or a victim cache to remove the code/data
+conflicts of the unified cache; a refill of one word per cycle, so that the
+cache arrays map to LUT-RAM; and implementation on an FPGA board to measure
+the maximum clock frequency.
 
 % =============================================================================
 \section*{Acknowledgment}
 The team used AI-assisted coding tools in their editors while writing code,
 testbenches and documentation. Every member reviewed, simulated and is able to
 explain the work submitted under their name; all results in this report are
-taken from the simulation logs in the repository.
+taken from the simulation and synthesis logs in the repository.
 % Check the course policy on AI use and adjust this wording if required.
 
 % =============================================================================
