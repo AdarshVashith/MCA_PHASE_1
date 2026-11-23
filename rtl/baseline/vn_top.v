@@ -39,6 +39,7 @@ module vn_top #(
         .m_re      (m_re),
         .m_is_data (m_is_data),
         .m_rdata   (m_rdata),
+        .m_ready   (1'b1),        // single-cycle shared memory: never stalls
         .halt      (halt),
         .instr_done(instr_done)
     );
