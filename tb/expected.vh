@@ -47,6 +47,59 @@ task check_program;
             chk("x1", `REG(1), 0);
             chk("x2", `REG(2), 210);
             chk("out_port", out_port, 210);
+        end else if (PROG_NAME == "isa_test") begin
+            exp_instr = 38; exp_daccess = 5;
+            chk("x1 lui+addi", `REG(1),  32'h1234_5678);
+            chk("x2 xori",     `REG(2),  32'hEDCB_A987);
+            chk("x3 andi",     `REG(3),  32'h78);
+            chk("x4 ori",      `REG(4),  32'hF0);
+            chk("x5 xor",      `REG(5),  32'h88);
+            chk("x6 slli",     `REG(6),  32'h780);
+            chk("x7 srli",     `REG(7),  1);
+            chk("x9 sll",      `REG(9),  8);
+            chk("x10 srl",     `REG(10), 32'hF0);
+            chk("x11",         `REG(11), 32'hFFFF_FFFB);
+            chk("x12 slt",     `REG(12), 1);
+            chk("x13 slt",     `REG(13), 0);
+            chk("x14 slti",    `REG(14), 1);
+            chk("x15 br/jmp",  `REG(15), 7);
+            chk("x16 jal link",`REG(16), 32'h60);
+            chk("x0",          `REG(0),  0);
+            chk("mem[0]", `DMEM(0), 32'h88);
+            chk("mem[3]", `DMEM(3), 7);
+            chk("out_port", out_port, 2313);
+        end else if (PROG_NAME == "bubble_sort") begin
+            exp_instr = 826; exp_daccess = 369;
+            chk("sorted[0]",  `DMEM(0),  -15);
+            chk("sorted[1]",  `DMEM(1),  -8);
+            chk("sorted[2]",  `DMEM(2),  -4);
+            chk("sorted[3]",  `DMEM(3),  -1);
+            chk("sorted[4]",  `DMEM(4),  0);
+            chk("sorted[5]",  `DMEM(5),  3);
+            chk("sorted[6]",  `DMEM(6),  5);
+            chk("sorted[7]",  `DMEM(7),  8);
+            chk("sorted[8]",  `DMEM(8),  9);
+            chk("sorted[9]",  `DMEM(9),  12);
+            chk("sorted[10]", `DMEM(10), 17);
+            chk("sorted[11]", `DMEM(11), 23);
+            chk("sorted[12]", `DMEM(12), 27);
+            chk("sorted[13]", `DMEM(13), 31);
+            chk("sorted[14]", `DMEM(14), 42);
+            chk("sorted[15]", `DMEM(15), 50);
+            chk("out_port", out_port, 13041);
+        end else if (PROG_NAME == "func_call") begin
+            exp_instr = 268; exp_daccess = 11;
+            for (k = 0; k < 10; k = k + 1)
+                chk("square", `DMEM(k), (k + 1) * (k + 1));
+            chk("x11", `REG(11), 385);
+            chk("out_port", out_port, 385);
+        end else if (PROG_NAME == "transpose") begin
+            exp_instr = 769; exp_daccess = 138;
+            for (k = 0; k < 64; k = k + 1)
+                chk("B[j][i]", `DMEM(64 + 8 * (k % 8) + k / 8), k + 1);
+            chk("row sum", `DMEM(128), 240);
+            chk("x6", `REG(6), 2080);
+            chk("out_port", out_port, 2080);
         end else begin
             $display("NOTE: no expected values for program '%0s', only counters checked", PROG_NAME);
         end
