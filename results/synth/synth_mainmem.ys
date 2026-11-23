@@ -1,0 +1,10 @@
+# Yosys synthesis of the Phase II lower-level memory model on its own
+# (512 x 32, one write port, one 4-word line read port), for reference only.
+# Run from the repository root:  yosys -l results/logs/synth_mainmem.log results/synth/synth_mainmem.ys
+read_verilog rtl/hier/main_mem.v
+chparam -set LATENCY 4 -set DATA_FILE "programs/memcopy_data.hex" -set PROG_FILE "programs/memcopy.hex" main_mem
+hierarchy -top main_mem
+proc
+delete t:$meminit_v2 r:WORDS=1 %i
+synth_xilinx -top main_mem -family xc7 -flatten
+tee -o results/synth/mainmem_stat.txt stat

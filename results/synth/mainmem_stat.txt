@@ -1,0 +1,27 @@
+
+6. Printing statistics.
+
+=== main_mem ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1249 wires
+     3879 wire bits
+       11 public wires
+      223 public wire bits
+        8 ports
+      197 port bits
+     1213 cells
+        1   BUFG
+        2   CARRY4
+        8   FDRE
+       68   IBUF
+        1   INV
+        1   LUT2
+        1   LUT3
+      157   LUT4
+      487   LUT5
+        6   LUT6
+      129   OBUF
+      352   RAM64M
+

@@ -1,0 +1,31 @@
+
+16. Printing statistics.
+
+=== vnc_top ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     4401 wires
+    11112 wire bits
+      134 public wires
+     3273 public wire bits
+       11 ports
+      259 port bits
+     7762 cells
+       11   $scopeinfo
+        1   BUFG
+       99   CARRY4
+     2452   FDRE
+        2   IBUF
+       28   INV
+      391   LUT2
+     2217   LUT3
+      146   LUT4
+     1755   LUT5
+      296   LUT6
+       62   MUXF7
+       31   MUXF8
+      257   OBUF
+       13   RAM32M
+        1   main_mem
+

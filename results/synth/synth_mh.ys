@@ -1,0 +1,21 @@
+# Yosys synthesis of the Phase II modified-Harvard system (mh_top) for a Xilinx
+# 7-series FPGA. Configuration: LATENCY = 4, I-cache and D-cache 8 lines x 4 words,
+# 1-entry write buffer, 512-word unified main memory holding the memcopy images.
+# main_mem is kept as a black box: it stands for the lower level of the
+# hierarchy (block RAM or off-chip memory), so the numbers are the cost of the
+# core plus the level-1 caches, write buffer and arbiter. synth_mainmem.ys
+# measures the memory model itself.
+# Run from the repository root:  yosys -l results/logs/synth_mh.log results/synth/synth_mh.ys
+# The program lives in a writable RAM (main_mem), so, as for vn_top, it cannot be
+# hard-wired into the core. Same initialisation workaround as synth_vn.ys.
+read_verilog rtl/mem/addr_decoder.v
+read_verilog rtl/core/regfile.v rtl/core/alu.v rtl/core/imm_gen.v rtl/core/control.v rtl/core/pc_reg.v rtl/core/cpu_core.v
+read_verilog rtl/common/perf_counters.v rtl/common/event_counter.v
+read_verilog rtl/hier/main_mem.v rtl/hier/cache.v rtl/hier/mem_arbiter.v rtl/hier/mh_top.v
+chparam -set PROG_FILE "programs/memcopy.hex" -set DATA_FILE "programs/memcopy_data.hex" mh_top
+blackbox main_mem
+hierarchy -top mh_top
+proc
+delete t:$meminit_v2 r:WORDS=1 %i
+synth_xilinx -top mh_top -family xc7 -flatten
+tee -o results/synth/mh_stat.txt stat

@@ -12,3 +12,15 @@ tb_harvard_top(memcopy): PASS
 HARVARD count_loop cycles=64 instrs=64 d_access=1 simul=1 out_port=210
 tb_harvard_top(count_loop): PASS
 ../tb/tb_harvard_top.v:70: $finish called at 686000 (1ps)
+HARVARD isa_test   cycles=38 instrs=38 d_access=5 simul=5 out_port=2313
+tb_harvard_top(isa_test): PASS
+../tb/tb_harvard_top.v:70: $finish called at 426000 (1ps)
+HARVARD bubble_sort cycles=826 instrs=826 d_access=369 simul=369 out_port=13041
+tb_harvard_top(bubble_sort): PASS
+../tb/tb_harvard_top.v:70: $finish called at 8306000 (1ps)
+HARVARD func_call  cycles=268 instrs=268 d_access=11 simul=11 out_port=385
+tb_harvard_top(func_call): PASS
+../tb/tb_harvard_top.v:70: $finish called at 2726000 (1ps)
+HARVARD transpose  cycles=769 instrs=769 d_access=138 simul=138 out_port=2080
+tb_harvard_top(transpose): PASS
+../tb/tb_harvard_top.v:70: $finish called at 7736000 (1ps)

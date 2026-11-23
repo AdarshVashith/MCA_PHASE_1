@@ -2549,10 +2549,10 @@ ABC: Node =    3814.  Ch =   638.  Total mem =    0.67 MB. Peak cut mem =    0.3
 ABC: P:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   110049.  T =     0.01 sec
 ABC: P:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   109496.  T =     0.01 sec
 ABC: P:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   119357.  T =     0.02 sec
-ABC: F:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   129796.  T =     0.01 sec
+ABC: F:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   129796.  T =     0.02 sec
 ABC: A:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   129734.  T =     0.02 sec
-ABC: A:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   129734.  T =     0.02 sec
-ABC: Total time =     0.10 sec
+ABC: A:  Del = 1461.00.  Ar =     640.0.  Edge =      256.  Cut =   129734.  T =     0.03 sec
+ABC: Total time =     0.11 sec
 ABC: + &write -n <abc-temp-dir>/output.aig 
 ABC: + &mfs 
 ABC: The network is not changed by "&mfs".
@@ -2562,9 +2562,9 @@ ABC: Mapping (K=8)  :  lut =     32  edge =     256  lev =    1 (0.33)  mem = 0.
 ABC: LUT = 32 : 2=0 0.0 %  3=0 0.0 %  4=0 0.0 %  5=0 0.0 %  6=0 0.0 %  7=0 0.0 %  8=32 100.0 %  Ave = 8.00
 ABC: + &write -n <abc-temp-dir>/output.aig 
 ABC: + &verify 
-ABC: Networks are equivalent.  Time =     0.06 sec
+ABC: Networks are equivalent.  Time =     0.07 sec
 ABC: + time 
-ABC: elapse: 0.23 seconds, total: 0.23 seconds
+ABC: elapse: 0.30 seconds, total: 0.30 seconds
 
 5.49.12.6. Executing AIGER frontend.
 <suppressed ~10 debug messages>
@@ -2926,6 +2926,6 @@ Found and reported 0 problems.
        32   MUXF8
        32   OBUF
 
-End of script. Logfile hash: 54e5840421, time: 2.58s, user: 2.23s, system: 0.07s, MEM: 140.02 MB peak
+End of script. Logfile hash: 76d2e584b6, time: 2.86s, user: 2.37s, system: 0.08s, MEM: 136.58 MB peak
 Yosys 0.71+post (git sha1 5628c13240f670b97aaaca3d47940c4afb8ff572, Release, AppleClang clang++ 21.0.0.21000401)
-Time spent: 67% 26x read_verilog (1 sec), 10% 1x abc9_exe (0 sec), ...
+Time spent: 65% 26x read_verilog (1 sec), 10% 1x abc9_exe (0 sec), ...

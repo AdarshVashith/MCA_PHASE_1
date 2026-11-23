@@ -1,0 +1,24 @@
+# Yosys synthesis of the Phase II von Neumann system with a unified cache
+# (vnc_top) for a Xilinx 7-series FPGA. Configuration: LATENCY = 4, unified cache
+# 16 lines x 4 words (same capacity as the 8+8 split caches of mh_top), 1-entry
+# write buffer, 512-word main memory holding the memcopy images.
+# main_mem is kept as a black box: it stands for the lower level of the
+# hierarchy (block RAM or off-chip memory), so the numbers are the cost of the
+# core plus the level-1 caches, write buffer and arbiter. synth_mainmem.ys
+# measures the memory model itself.
+# Run from the repository root:  yosys -l results/logs/synth_vnc.log results/synth/synth_vnc.ys
+# As for vn_top, Yosys reports a structural logic loop through the bus mux
+# (m_addr -> cache -> m_ready -> instr -> ALU -> m_addr). It cannot be active:
+# the core's instr selects the bus data only in FETCH_EXEC, and m_addr uses the
+# ALU only in MEM.
+read_verilog rtl/mem/addr_decoder.v rtl/baseline/cpu_core_vn.v
+read_verilog rtl/core/regfile.v rtl/core/alu.v rtl/core/imm_gen.v rtl/core/control.v
+read_verilog rtl/common/perf_counters.v rtl/common/event_counter.v
+read_verilog rtl/hier/main_mem.v rtl/hier/cache.v rtl/hier/vnc_top.v
+chparam -set PROG_FILE "programs/memcopy.hex" -set DATA_FILE "programs/memcopy_data.hex" vnc_top
+blackbox main_mem
+hierarchy -top vnc_top
+proc
+delete t:$meminit_v2 r:WORDS=1 %i
+synth_xilinx -top vnc_top -family xc7 -flatten
+tee -o results/synth/vnc_stat.txt stat

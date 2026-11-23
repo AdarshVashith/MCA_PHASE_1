@@ -12,3 +12,15 @@ tb_vn_top(memcopy): PASS
 VN      count_loop cycles=65 instrs=64 d_access=1 simul=0 out_port=210
 tb_vn_top(count_loop): PASS
 ../tb/tb_vn_top.v:69: $finish called at 696000 (1ps)
+VN      isa_test   cycles=43 instrs=38 d_access=5 simul=0 out_port=2313
+tb_vn_top(isa_test): PASS
+../tb/tb_vn_top.v:69: $finish called at 476000 (1ps)
+VN      bubble_sort cycles=1195 instrs=826 d_access=369 simul=0 out_port=13041
+tb_vn_top(bubble_sort): PASS
+../tb/tb_vn_top.v:69: $finish called at 11996000 (1ps)
+VN      func_call  cycles=279 instrs=268 d_access=11 simul=0 out_port=385
+tb_vn_top(func_call): PASS
+../tb/tb_vn_top.v:69: $finish called at 2836000 (1ps)
+VN      transpose  cycles=907 instrs=769 d_access=138 simul=0 out_port=2080
+tb_vn_top(transpose): PASS
+../tb/tb_vn_top.v:69: $finish called at 9116000 (1ps)

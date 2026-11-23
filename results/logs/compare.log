@@ -12,3 +12,15 @@ tb_compare(memcopy): PASS
 | count_loop |   64 |   1.6% |    64 | 1.00 |    65 | 1.02 | 1.02x |     1 |
 tb_compare(count_loop): PASS
 ../tb/tb_compare.v:86: $finish called at 696000 (1ps)
+| isa_test   |   38 |  13.2% |    38 | 1.00 |    43 | 1.13 | 1.13x |     5 |
+tb_compare(isa_test): PASS
+../tb/tb_compare.v:86: $finish called at 476000 (1ps)
+| bubble_sort |  826 |  44.7% |   826 | 1.00 |  1195 | 1.45 | 1.45x |   369 |
+tb_compare(bubble_sort): PASS
+../tb/tb_compare.v:86: $finish called at 11996000 (1ps)
+| func_call  |  268 |   4.1% |   268 | 1.00 |   279 | 1.04 | 1.04x |    11 |
+tb_compare(func_call): PASS
+../tb/tb_compare.v:86: $finish called at 2836000 (1ps)
+| transpose  |  769 |  17.9% |   769 | 1.00 |   907 | 1.18 | 1.18x |   138 |
+tb_compare(transpose): PASS
+../tb/tb_compare.v:86: $finish called at 9116000 (1ps)
