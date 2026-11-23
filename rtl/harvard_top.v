@@ -29,11 +29,13 @@ module harvard_top #(
         .rst       (rst),
         .i_addr    (i_addr),
         .i_rdata   (i_rdata),
+        .i_ready   (1'b1),        // ideal memories: never stall
         .d_addr    (d_addr),
         .d_wdata   (d_wdata),
         .d_we      (d_we),
         .d_re      (d_re),
         .d_rdata   (d_rdata),
+        .d_ready   (1'b1),
         .halt      (halt),
         .instr_done(instr_done)
     );
