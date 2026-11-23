@@ -1,0 +1,24 @@
+ROW,basic,4,8,4,1,19,7,19,26,48,5,1,21,8,1,0,7,53,6,27,0,92
+tb_hier(basic L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 1196000 (1ps)
+ROW,array_sum,4,8,4,1,38,10,38,48,58,3,2,12,8,4,0,10,128,19,80,0,189
+tb_hier(array_sum L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 2166000 (1ps)
+ROW,memcopy,4,8,4,1,54,17,54,71,76,3,2,14,8,2,0,17,121,12,50,0,281
+tb_hier(memcopy L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 3086000 (1ps)
+ROW,count_loop,4,8,4,1,64,1,64,65,72,2,0,8,0,0,0,1,73,2,8,0,257
+tb_hier(count_loop L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 2846000 (1ps)
+ROW,isa_test,4,8,4,1,38,5,38,43,87,10,0,40,9,4,9,5,93,10,50,6,169
+tb_hier(isa_test L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 1966000 (1ps)
+ROW,bubble_sort,4,8,4,1,826,369,826,1195,1058,6,4,24,208,4,189,369,2422,252,1227,126,4777
+tb_hier(bubble_sort L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 48046000 (1ps)
+ROW,func_call,4,8,4,1,268,11,268,279,292,6,0,24,0,0,0,11,303,6,24,0,1113
+tb_hier(func_call L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 11406000 (1ps)
+ROW,transpose,4,8,4,1,769,138,769,907,869,7,18,28,72,4,0,138,1122,48,215,0,3625
+tb_hier(transpose L=4 lines=8 wbuf=1): PASS
+../tb/tb_hier.v:139: $finish called at 36526000 (1ps)
