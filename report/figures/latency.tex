@@ -1,0 +1,21 @@
+% CPI vs memory latency, data from report/data/latency.dat (written by tools/sweep.py)
+\begin{tikzpicture}
+\begin{axis}[
+    width=\columnwidth, height=5.0cm,
+    xmode=log, log basis x=2, ymode=log,
+    xtick={1,2,4,8,16}, xticklabels={1,2,4,8,16},
+    ytick={1,1.5,2,3,5,10,20}, yticklabels={1,1.5,2,3,5,10,20},
+    ymin=0.9, ymax=22,
+    xlabel={Lower-level memory latency $L$ (cycles)},
+    ylabel={Geometric-mean CPI (8 programs)},
+    grid=major, grid style={gray!25},
+    tick label style={font=\scriptsize}, label style={font=\footnotesize},
+    legend style={font=\scriptsize, at={(0.5,-0.3)}, anchor=north, legend columns=2, cells={anchor=west}},
+    every axis plot/.append style={thick, mark size=1.6pt}]
+\addplot[black!60, dashed, mark=none]     table[x=L, y=H]  {data/latency.dat}; \addlegendentry{H: ideal Harvard}
+\addplot[black!60, dotted, mark=none]     table[x=L, y=VN] {data/latency.dat}; \addlegendentry{VN: ideal shared memory}
+\addplot[red!75!black, mark=triangle*]    table[x=L, y=NC] {data/latency.dat}; \addlegendentry{NC: shared memory, no cache}
+\addplot[orange!85!black, mark=square*]   table[x=L, y=UC] {data/latency.dat}; \addlegendentry{UC: unified cache 16 lines}
+\addplot[blue!75!black, mark=*]           table[x=L, y=MH] {data/latency.dat}; \addlegendentry{MH: split caches 8+8 lines}
+\end{axis}
+\end{tikzpicture}

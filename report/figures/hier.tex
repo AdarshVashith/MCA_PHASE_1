@@ -1,0 +1,47 @@
+% Phase II block diagram: modified Harvard (left) vs von Neumann with a unified cache (right)
+\begin{tikzpicture}[
+    font=\scriptsize,
+    blk/.style={draw, thick, rounded corners=2pt, align=center, minimum height=0.8cm},
+    mem/.style={blk, fill=blue!8},
+    cch/.style={blk, fill=green!10},
+    cpu/.style={blk, fill=orange!12},
+    misc/.style={blk, fill=gray!10},
+    bus/.style={-{Latex[length=1.6mm]}, thick},
+    x=1cm, y=1cm]
+
+% ---------------- (a) modified Harvard ----------------
+\node[font=\footnotesize\bfseries] at (4.0,2.85) {(a) Modified Harvard: \texttt{mh\_top}};
+\node[cpu, minimum width=1.5cm, minimum height=3.3cm] (core) at (0,0.55) {cpu\_core\\[2pt]single\\cycle\\+ stall};
+
+\node[cch, minimum width=1.9cm] (ic) at (3.6,1.7) {I-cache\\8 lines $\times$ 4 w};
+\node[cch, minimum width=1.9cm] (dc) at (3.6,-0.4) {addr\_decoder\\D-cache + wbuf};
+\node[misc, minimum width=1.0cm, minimum height=0.5cm] (out) at (3.6,-1.55) {out\_port};
+\node[misc, minimum width=1.25cm, minimum height=1.7cm] (arb) at (5.85,0.65) {mem\_\\arbiter\\(I first)};
+\node[mem, minimum width=1.55cm, minimum height=2.6cm] (mm) at (7.9,0.65) {main\_mem\\[2pt]unified\\code + data\\[2pt]latency $L$};
+
+\draw[bus] (0.75,1.9) -- node[above]{i\_addr} (2.65,1.9);
+\draw[bus] (2.65,1.5) -- node[below]{i\_rdata, i\_ready} (0.75,1.5);
+\draw[bus] (0.75,-0.2) -- node[above]{d\_addr, d\_wdata} (2.65,-0.2);
+\draw[bus] (2.65,-0.6) -- node[below]{d\_rdata, d\_ready} (0.75,-0.6);
+\draw[bus] (dc.south) -- (out.north);
+\draw[bus] (ic.east) -- (5.22,1.2);
+\draw[bus] (dc.east) -- (5.22,0.1);
+\draw[bus] (arb.east) -- node[above]{req} (7.12,0.65);
+\draw[bus] (7.12,-0.35) -- node[below]{line} (5.22,-0.35);
+\draw[densely dashed, gray] (2.65,0.65) -- (4.55,0.65);
+\node[gray, font=\tiny] at (3.6,0.82) {independent L1 ports};
+
+% ---------------- (b) von Neumann + unified cache ----------------
+\node[font=\footnotesize\bfseries] at (13.3,2.85) {(b) Unified cache: \texttt{vnc\_top}};
+\node[cpu, minimum width=1.6cm, minimum height=3.3cm] (vcore) at (10.2,0.55) {cpu\_core\_vn\\[2pt]FETCH\_EXEC/\\MEM FSM\\+ stall};
+\node[cch, minimum width=2.1cm, minimum height=1.8cm] (uc) at (13.4,0.65) {addr\_decoder\\[2pt]unified cache\\16 lines $\times$ 4 w\\+ wbuf};
+\node[misc, minimum width=1.0cm, minimum height=0.5cm] (vout) at (13.4,-1.55) {out\_port};
+\node[mem, minimum width=1.55cm, minimum height=2.6cm] (vmm) at (16.0,0.65) {main\_mem\\[2pt]unified\\code + data\\[2pt]latency $L$};
+
+\draw[bus] (11.0,1.0) -- node[above]{m\_addr} (12.35,1.0);
+\draw[bus] (12.35,0.3) -- node[below]{m\_rdata} (11.0,0.3);
+\draw[bus] (uc.south) -- (vout.north);
+\draw[bus] (14.45,1.0) -- node[above]{req} (15.22,1.0);
+\draw[bus] (15.22,0.3) -- node[below]{line} (14.45,0.3);
+\node[gray, font=\tiny, align=center] at (11.68,-0.45) {one bus:\\fetch OR data};
+\end{tikzpicture}

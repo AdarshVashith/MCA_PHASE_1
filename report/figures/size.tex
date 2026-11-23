@@ -1,0 +1,17 @@
+% CPI vs cache capacity at L = 4, data from report/data/size.dat (written by tools/sweep.py)
+\begin{tikzpicture}
+\begin{axis}[
+    width=\columnwidth, height=4.8cm,
+    xmode=log, log basis x=2,
+    xtick={8,16,32,64,128,256}, xticklabels={8,16,32,64,128,256},
+    ymin=1.0, ymax=3.0,
+    xlabel={Total level-1 capacity (words): split $n+n$ lines vs.\ unified $2n$ lines},
+    ylabel={Geo-mean CPI, $L=4$},
+    grid=major, grid style={gray!25},
+    tick label style={font=\scriptsize}, label style={font=\footnotesize},
+    legend style={font=\scriptsize, at={(0.98,0.98)}, anchor=north east, cells={anchor=west}},
+    every axis plot/.append style={thick, mark size=1.6pt}]
+\addplot[orange!85!black, mark=square*] table[x=words, y=UC] {data/size.dat}; \addlegendentry{UC: unified cache}
+\addplot[blue!75!black, mark=*]         table[x=words, y=MH] {data/size.dat}; \addlegendentry{MH: split I/D caches}
+\end{axis}
+\end{tikzpicture}
