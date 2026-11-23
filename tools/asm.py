@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Tiny assembler for the Project 9 RV32I subset.
 
-Supported: add sub and or addi lw sw beq bne ebreak, plus the pseudo-op `nop`
-(= addi x0,x0,0).  Labels end with ':', comments start with '#' or ';'.
+Supported (Phase I) : add sub and or addi lw sw beq bne ebreak
+Supported (Phase II): xor slt sll srl andi ori xori slti slli srli blt bge
+                      jal jalr lui
+Pseudo-ops: nop (= addi x0,x0,0), j label (= jal x0,label),
+            ret (= jalr x0,0(x1)), li rd,imm (12-bit: addi rd,x0,imm),
+            mv rd,rs (= addi rd,rs,0).  Labels end with ':', comments start with '#' or ';'.
 Registers are x0..x31.  Immediates may be decimal, negative, or 0x hex.
 
 Usage:
@@ -14,14 +18,21 @@ import re
 import sys
 
 OP_R, OP_I, OP_LW, OP_SW, OP_B = 0b0110011, 0b0010011, 0b0000011, 0b0100011, 0b1100011
+OP_JAL, OP_JALR, OP_LUI = 0b1101111, 0b1100111, 0b0110111
 
 R_TYPE = {  # name: (funct7, funct3)
     "add": (0b0000000, 0b000),
     "sub": (0b0100000, 0b000),
     "and": (0b0000000, 0b111),
     "or":  (0b0000000, 0b110),
+    "xor": (0b0000000, 0b100),
+    "slt": (0b0000000, 0b010),
+    "sll": (0b0000000, 0b001),
+    "srl": (0b0000000, 0b101),
 }
-B_TYPE = {"beq": 0b000, "bne": 0b001}
+I_ALU = {"addi": 0b000, "andi": 0b111, "ori": 0b110, "xori": 0b100, "slti": 0b010}
+I_SHIFT = {"slli": 0b001, "srli": 0b101}
+B_TYPE = {"beq": 0b000, "bne": 0b001, "blt": 0b100, "bge": 0b101}
 
 
 class AsmError(Exception):
@@ -80,6 +91,25 @@ def enc_b(off, rs2, rs1, f3, op):
         | (f3 << 12) | (((off >> 1) & 0xF) << 8) | (((off >> 11) & 1) << 7) | op
 
 
+def enc_j(off, rd, op):
+    check_range(off, 21, "jump offset")
+    if off % 2:
+        raise AsmError("jump offset must be even")
+    off &= 0x1FFFFF
+    return (((off >> 20) & 1) << 31) | (((off >> 1) & 0x3FF) << 21) | (((off >> 11) & 1) << 20) \
+        | (((off >> 12) & 0xFF) << 12) | (rd << 7) | op
+
+
+def enc_u(imm20, rd, op):
+    if not 0 <= imm20 <= 0xFFFFF:
+        raise AsmError(f"U-immediate {imm20} out of range [0, 0xFFFFF]")
+    return (imm20 << 12) | (rd << 7) | op
+
+
+def target(tok, pc, labels):
+    return labels[tok] - pc if tok in labels else num(tok)
+
+
 def split_lines(src):
     """Yield (line_no, label_list, mnemonic, operand_list)."""
     for n, raw in enumerate(src.splitlines(), 1):
@@ -135,12 +165,42 @@ def encode(mnem, ops, pc, labels):
         want(ops, 3, mnem)
         f7, f3 = R_TYPE[mnem]
         return enc_r(f7, reg(ops[2]), reg(ops[1]), f3, reg(ops[0]), OP_R)
-    if mnem == "addi":
+    if mnem in I_ALU:
         want(ops, 3, mnem)
-        return enc_i(num(ops[2]), reg(ops[1]), 0b000, reg(ops[0]), OP_I)
+        return enc_i(num(ops[2]), reg(ops[1]), I_ALU[mnem], reg(ops[0]), OP_I)
+    if mnem in I_SHIFT:
+        want(ops, 3, mnem)
+        sh = num(ops[2])
+        if not 0 <= sh <= 31:
+            raise AsmError(f"shift amount {sh} out of range [0, 31]")
+        return enc_i(sh, reg(ops[1]), I_SHIFT[mnem], reg(ops[0]), OP_I)
     if mnem == "nop":
         want(ops, 0, mnem)
         return enc_i(0, 0, 0b000, 0, OP_I)
+    if mnem == "li":
+        want(ops, 2, mnem)
+        return enc_i(num(ops[1]), 0, 0b000, reg(ops[0]), OP_I)
+    if mnem == "mv":
+        want(ops, 2, mnem)
+        return enc_i(0, reg(ops[1]), 0b000, reg(ops[0]), OP_I)
+    if mnem == "lui":
+        want(ops, 2, mnem)
+        return enc_u(num(ops[1]), reg(ops[0]), OP_LUI)
+    if mnem == "jal":
+        if len(ops) == 1:                      # jal label  -> rd = x1
+            ops = ["x1", ops[0]]
+        want(ops, 2, mnem)
+        return enc_j(target(ops[1], pc, labels), reg(ops[0]), OP_JAL)
+    if mnem == "j":
+        want(ops, 1, mnem)
+        return enc_j(target(ops[0], pc, labels), 0, OP_JAL)
+    if mnem == "jalr":
+        want(ops, 2, mnem)                     # jalr rd, imm(rs1)
+        imm, rs1 = mem_operand(ops[1])
+        return enc_i(imm, rs1, 0b000, reg(ops[0]), OP_JALR)
+    if mnem == "ret":
+        want(ops, 0, mnem)
+        return enc_i(0, 1, 0b000, 0, OP_JALR)
     if mnem == "lw":
         want(ops, 2, mnem)
         imm, rs1 = mem_operand(ops[1])
@@ -151,8 +211,7 @@ def encode(mnem, ops, pc, labels):
         return enc_s(imm, reg(ops[0]), rs1, 0b010, OP_SW)
     if mnem in B_TYPE:
         want(ops, 3, mnem)
-        tgt = ops[2]
-        off = labels[tgt] - pc if tgt in labels else num(tgt)
+        off = target(ops[2], pc, labels)
         return enc_b(off, reg(ops[1]), reg(ops[0]), B_TYPE[mnem], OP_B)
     if mnem == "ebreak":
         want(ops, 0, mnem)
@@ -184,6 +243,23 @@ def selftest():
         # bne x1,x0,-4  : off=-4 (0x1FFC) -> bit31=1, imm[10:5]=111111, imm[4:1]=1110, imm[11]=1
         ("bne x1, x0, -4", 0xFE009EE3),
         ("ebreak", 0x00100073),
+        # ---- Phase II instructions (values from the RV32I encoding tables) ----
+        ("xor x3, x1, x2", 0x0020C1B3),
+        ("slt x3, x1, x2", 0x0020A1B3),
+        ("sll x3, x1, x2", 0x002091B3),
+        ("srl x3, x1, x2", 0x0020D1B3),
+        ("andi x3, x1, 15", 0x00F0F193),
+        ("ori x3, x1, 15", 0x00F0E193),
+        ("xori x3, x1, -1", 0xFFF0C193),
+        ("slti x3, x1, 10", 0x00A0A193),
+        ("slli x3, x1, 2", 0x00209193),
+        ("srli x3, x1, 2", 0x0020D193),
+        ("blt x1, x2, 8", 0x0020C463),
+        ("bge x1, x2, -8", 0xFE20DCE3),
+        ("jal x1, 16", 0x010000EF),
+        ("jal x0, -4", 0xFFDFF06F),
+        ("jalr x0, 0(x1)", 0x00008067),
+        ("lui x5, 0x12345", 0x123452B7),
     ]
     bad = 0
     for text, expect in cases:
